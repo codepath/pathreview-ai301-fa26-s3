@@ -98,7 +98,7 @@ class ResumeParser(BaseParser):
     def _strip_markdown(self, content: str) -> str:
         """Remove markdown syntax from content."""
         # Remove markdown headers
-        text = re.sub(r"^#+\s+", "", content, flags=re.MULTILINE)
+        text = re.sub(r"^([^\S\r\n]*)#+\s+", r"\1", content, flags=re.MULTILINE)
 
         # Remove markdown links [text](url)
         text = re.sub(r"\[([^\]]+)\]\(([^\)]+)\)", r"\1", text)
@@ -131,10 +131,10 @@ class ResumeParser(BaseParser):
         for section in SECTION_HEADERS:
             # Look for section header patterns
             patterns = [
-                rf"^{re.escape(section)}\s*$",
-                rf"^{re.escape(section)}\s*[:|-]",
-                rf"\n{re.escape(section)}\s*$",
-                rf"\n{re.escape(section)}\s*[:|-]",
+                rf"^[^\S\r\n]*{re.escape(section)}\s*$",
+                rf"^[^\S\r\n]*{re.escape(section)}\s*[:|-]",
+                rf"\n[^\S\r\n]*{re.escape(section)}\s*$",
+                rf"\n[^\S\r\n]*{re.escape(section)}\s*[:|-]",
             ]
 
             for pattern in patterns:
