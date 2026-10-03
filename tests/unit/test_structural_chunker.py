@@ -25,9 +25,6 @@ class TestStructuralChunker:
         result = chunker.chunk("   \n\n  ", {})
         assert result == []
 
-    @pytest.mark.xfail(
-        strict=True, reason="issue #56: structural chunker drops documents with no headings"
-    )
     def test_document_with_no_headings(self, chunker):
         """Test document with no headings returns single chunk."""
         text = "This is plain text without any markdown headings. " * 20
@@ -36,6 +33,33 @@ class TestStructuralChunker:
         assert len(result) >= 1
         assert isinstance(result[0], Chunk)
         assert all(isinstance(c, Chunk) for c in result)
+
+    def test_document_with_no_headings_keeps_text_and_metadata(self, chunker):
+        """Test a short heading-less document becomes one chunk with empty heading path."""
+        text = "This is plain text without any markdown headings. " * 20
+        result = chunker.chunk(text, {"source": "test"})
+
+        assert len(result) == 1
+        assert result[0].text == text.strip()
+        assert result[0].metadata["heading_path"] == ""
+        assert result[0].metadata["heading_level"] == 0
+        assert result[0].metadata["source"] == "test"
+
+    def test_long_document_with_no_headings_is_sub_chunked(self, chunker):
+        """Test a heading-less document over the section token limit is sub-chunked."""
+        text = "This is a sentence in a long document without headings. " * 300
+        result = chunker.chunk(text, {})
+
+        assert len(result) > 1
+        assert all(c.text.strip() for c in result)
+
+    def test_blank_lines_before_first_heading_add_no_chunk(self, chunker):
+        """Test whitespace before the first heading does not create an empty chunk."""
+        text = "\n\n   \n# Title\nContent here."
+        result = chunker.chunk(text, {})
+
+        assert len(result) == 1
+        assert result[0].metadata["heading_path"] == "Title"
 
     def test_document_with_nested_headings(self, chunker):
         """Test document with nested headings preserves heading_path."""
