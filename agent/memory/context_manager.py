@@ -55,6 +55,10 @@ class ContextManager:
         """
         return dict(self.results)
 
+    def clear(self) -> None:
+        """Empty the in-memory memoization cache."""
+        self.results.clear()
+
     @staticmethod
     def hash_input(input_data: dict) -> str:
         """Hash input data for consistent memoization.

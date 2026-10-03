@@ -41,6 +41,11 @@ class Orchestrator:
         """
         logger.info("orchestrator_start", profile_id=profile_id)
 
+        # Start each run fresh: drop memoized results and saved session state
+        self.context_manager.clear()
+        if self.session_store:
+            self.session_store.delete(profile_id)
+
         # Build execution plan
         plan = self._build_plan(profile_data)
 
