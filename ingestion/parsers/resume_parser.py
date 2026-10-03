@@ -98,7 +98,7 @@ class ResumeParser(BaseParser):
     def _strip_markdown(self, content: str) -> str:
         """Remove markdown syntax from content."""
         # Remove markdown headers
-        text = re.sub(r"^#+\s+", "", content, flags=re.MULTILINE)
+        text = re.sub(r"^[ \t]*#+\s+", "", content, flags=re.MULTILINE)
 
         # Remove markdown links [text](url)
         text = re.sub(r"\[([^\]]+)\]\(([^\)]+)\)", r"\1", text)
@@ -126,7 +126,8 @@ class ResumeParser(BaseParser):
     def _detect_sections(self, text: str) -> list[str]:
         """Detect common resume sections from text."""
         detected = []
-        text_lower = text.lower()
+        # Strip each line so indented headers still match the patterns below
+        text_lower = "\n".join(line.strip() for line in text.lower().splitlines())
 
         for section in SECTION_HEADERS:
             # Look for section header patterns
