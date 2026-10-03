@@ -131,25 +131,21 @@ class TestReadmeParser:
 
         assert "Content must be a string or bytes" in str(exc_info.value)
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="issue #71 (manifest H-04): heading hierarchy fixture is indented, so it has no headings",
-    )
     def test_extract_heading_hierarchy(self, parser):
         """Test heading hierarchy extraction."""
         markdown = """
-        # Main Title
-        Some content
+# Main Title
+Some content
 
-        ## Subsection
-        More content
+## Subsection
+More content
 
-        ### Sub-subsection
-        Even more content
+### Sub-subsection
+Even more content
 
-        ## Another Section
-        Final content
-        """
+## Another Section
+Final content
+    """
         headings = parser._extract_heading_hierarchy(markdown)
 
         assert isinstance(headings, list)
