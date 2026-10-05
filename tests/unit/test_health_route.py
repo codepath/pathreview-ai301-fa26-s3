@@ -1,4 +1,9 @@
 import asyncio
+import os
+
+# core.database builds its engine at import time from DATABASE_URL; point it
+# at SQLite so the test does not need asyncpg or a running Postgres.
+os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
 
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
