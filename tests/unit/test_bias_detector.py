@@ -9,10 +9,6 @@ from safety.bias_detector import BiasDetector
 class TestBiasDetector:
     """Test suite for BiasDetector."""
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="issue #58: bias detector patterns are too narrow to match common phrasings",
-    )
     def test_dismissive_bootcamp_language_detected(self):
         """Test dismissive bootcamp language is detected as biased."""
         text = "bootcamp graduates can't write production code"
@@ -22,10 +18,6 @@ class TestBiasDetector:
         assert is_biased is True
         assert reason != ""
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="issue #58: bias detector patterns are too narrow to match common phrasings",
-    )
     def test_bootcamp_lacks_rigor_detected(self):
         """Test 'bootcamp lacks rigor' language detected."""
         text = "bootcamp education lacks fundamentals"
@@ -74,10 +66,6 @@ class TestBiasDetector:
 
         assert is_biased is False
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="issue #58: bias detector patterns are too narrow to match common phrasings",
-    )
     def test_demographic_assumption_age_detected(self):
         """Test demographic assumption about age detected."""
         text = "young developers can't handle complex systems"
@@ -195,10 +183,6 @@ class TestBiasDetector:
 
         assert is_biased is False
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="issue #58: bias detector patterns are too narrow to match common phrasings",
-    )
     def test_coding_bootcamp_variant(self):
         """Test 'coding bootcamp' variant is detected."""
         text = "coding bootcamp graduates can't write enterprise code"
@@ -215,10 +199,6 @@ class TestBiasDetector:
 
         assert is_biased is True
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="issue #58: bias detector patterns are too narrow to match common phrasings",
-    )
     def test_developer_vs_programmer_distinction(self):
         """Test both developer and programmer terms detected."""
         text_dev = "bootcamp developers can't handle production systems"
@@ -230,10 +210,6 @@ class TestBiasDetector:
         assert is_biased_dev is True
         assert is_biased_prog is True
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="issue #58: bias detector patterns are too narrow to match common phrasings",
-    )
     def test_multiple_bias_indicators(self):
         """Test text with multiple bias indicators."""
         text = (
@@ -244,10 +220,6 @@ class TestBiasDetector:
 
         assert is_biased is True
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="issue #58: bias detector patterns are too narrow to match common phrasings",
-    )
     def test_negative_educational_claim(self):
         """Test negative claims about education detected."""
         text = "self-taught developers are not equal to university graduates"
@@ -264,10 +236,6 @@ class TestBiasDetector:
 
         assert is_biased is True
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="issue #58: bias detector patterns are too narrow to match common phrasings",
-    )
     def test_rich_poor_assumption(self):
         """Test rich/poor background assumption detected."""
         text = "developers from poor backgrounds can't afford proper tools"
@@ -300,10 +268,6 @@ class TestBiasDetector:
 
         assert is_biased is False
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="issue #58: bias detector patterns are too narrow to match common phrasings",
-    )
     def test_assumption_vs_observation(self):
         """Test that observations are not flagged, assumptions are."""
         observation = "your resume shows bootcamp attendance"  # Factual
@@ -314,3 +278,24 @@ class TestBiasDetector:
 
         assert is_biased_obs is False  # Factual
         assert is_biased_ass is True  # Biased assumption
+
+    def test_issue_bootcamp_rigor_sentence_detected(self):
+        """Test the issue's bootcamp-rigor sentence is detected (#58)."""
+        text = (
+            "The candidate only attended a bootcamp, so this project lacks the rigor "
+            "of a formal CS education"
+        )
+
+        is_biased, reason = BiasDetector.detect_bias(text)
+
+        assert is_biased is True
+        assert reason == "Dismissive language about educational background"
+
+    def test_issue_age_assumption_sentence_detected(self):
+        """Test the issue's age-assumption sentence is detected (#58)."""
+        text = "Given their age, they likely cannot keep up with modern frameworks"
+
+        is_biased, reason = BiasDetector.detect_bias(text)
+
+        assert is_biased is True
+        assert reason == "Demographic assumptions detected"
