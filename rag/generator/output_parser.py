@@ -38,6 +38,9 @@ def parse_review_output(raw: str) -> list[FeedbackSection]:
         json_str = json_match.group(1)
         try:
             data = json.loads(json_str)
+            if isinstance(data, list):
+                logger.warning("json_array_in_fence_using_plaintext_fallback")
+                return _parse_plaintext_output(raw)
             return _parse_json_output(data)
         except json.JSONDecodeError:
             logger.warning("json_parsing_failed_in_fence", json_snippet=json_str[:100])
@@ -45,6 +48,9 @@ def parse_review_output(raw: str) -> list[FeedbackSection]:
     # Try raw JSON
     try:
         data = json.loads(raw)
+        if isinstance(data, list):
+            logger.warning("raw_json_array_using_plaintext_fallback")
+            return _parse_plaintext_output(raw)
         return _parse_json_output(data)
     except json.JSONDecodeError:
         logger.warning("raw_json_parsing_failed")
