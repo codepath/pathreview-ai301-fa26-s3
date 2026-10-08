@@ -129,7 +129,7 @@ class ResumeParser(BaseParser):
         text_lower = text.lower()
 
         for section in SECTION_HEADERS:
-            # Look for section header patterns
+            # Look for section header patterns; allow indentation, but not line breaks
             patterns = [
                 rf"^[^\S\r\n]*{re.escape(section)}\s*$",
                 rf"^[^\S\r\n]*{re.escape(section)}\s*[:|-]",
