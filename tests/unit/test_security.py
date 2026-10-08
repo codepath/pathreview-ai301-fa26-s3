@@ -215,18 +215,24 @@ class TestSecurity:
         assert isinstance(hashed, str)
         assert verify_password(long_password, hashed) is True
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="issue #72 (manifest H-05): password verify raises UnknownHashError instead of returning False",
-    )
-    def test_verify_with_wrong_hash_format(self):
-        """Test verify_password with non-bcrypt hash."""
-        wrong_hash = "not_a_valid_bcrypt_hash"
-
-        # Should handle gracefully, return False
+    @pytest.mark.parametrize("wrong_hash", ["not_a_valid_bcrypt_hash", "", "$2b$12$abc"])
+    def test_verify_with_wrong_hash_format(self, wrong_hash):
+        """Malformed stored hashes fail closed instead of raising."""
         result = verify_password("password", wrong_hash)
 
         assert result is False
+
+    @pytest.mark.parametrize("error_type", [TypeError, RuntimeError])
+    def test_verify_password_preserves_unexpected_errors(self, monkeypatch, error_type):
+        """Programming and backend errors remain visible to the caller."""
+
+        def fail_verification(*args, **kwargs):
+            raise error_type("verification unavailable")
+
+        monkeypatch.setattr("core.security.pwd_context.verify", fail_verification)
+
+        with pytest.raises(error_type, match="verification unavailable"):
+            verify_password("password", "stored_hash")
 
     def test_token_tampering_detection(self):
         """Test that tampered token is rejected."""
