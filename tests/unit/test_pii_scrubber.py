@@ -31,10 +31,6 @@ class TestPIIScrubber:
         assert "alice@example.com" not in scrubbed
         assert "bob@company.org" not in scrubbed
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="issue #53: PII scrubber does not redact parenthesized US phone numbers",
-    )
     def test_us_phone_number_redaction(self, scrubber):
         """Test US phone number is redacted."""
         text = "Call me at (555) 123-4567"
@@ -43,10 +39,6 @@ class TestPIIScrubber:
         assert "[REDACTED]" in scrubbed
         assert "555" not in scrubbed or "1234567" not in scrubbed
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="issue #53: PII scrubber does not redact parenthesized US phone numbers",
-    )
     def test_us_phone_formats(self, scrubber):
         """Test various US phone number formats."""
         formats = [
@@ -127,10 +119,6 @@ class TestPIIScrubber:
         assert len(email_detections) > 0
         assert "alice@example.com" in email_detections[0]["value"]
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="issue #53: PII scrubber does not redact parenthesized US phone numbers",
-    )
     def test_detect_phone_pii(self, scrubber):
         """Test detect() finds phone number PII."""
         text = "Phone: (555) 123-4567"
@@ -188,10 +176,6 @@ class TestPIIScrubber:
             scrubbed = scrubber.scrub(text)
             assert email not in scrubbed or "[REDACTED]" in scrubbed
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="issue #53: PII scrubber does not redact parenthesized US phone numbers",
-    )
     def test_phone_at_start_of_text(self, scrubber):
         """Test phone number at start of text."""
         text = "(555) 123-4567 is my phone number."
@@ -205,6 +189,13 @@ class TestPIIScrubber:
         scrubbed = scrubber.scrub(text)
 
         assert "[REDACTED]" in scrubbed
+
+    def test_parenthesized_phone_fully_redacted(self, scrubber):
+        """Test the opening paren is redacted with the rest of the number."""
+        text = "Call me at (555)123-4567"
+        scrubbed = scrubber.scrub(text)
+
+        assert scrubbed == "Call me at [REDACTED]"
 
     def test_address_variations(self, scrubber):
         """Test various street address formats."""
