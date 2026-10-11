@@ -6,7 +6,10 @@ from uuid import uuid4
 import pytest
 
 from core.services.review_service import (
+    compute_profile_content_hash,
+    create_or_reuse_review,
     create_review,
+    find_completed_review_by_hash,
     get_review,
     list_reviews,
 )
@@ -377,3 +380,122 @@ class TestReviewService:
 
         # Should order by created_at descending
         mock_db_session.execute.assert_called_once()
+
+    def test_compute_profile_content_hash_matches_for_identical_content(self):
+        """Same profile field values produce the same hash."""
+        profile_a = Mock(
+            github_username="octocat",
+            portfolio_url="https://a.test",
+            resume_text=None,
+            resume_filename=None,
+        )
+        profile_b = Mock(
+            github_username="octocat",
+            portfolio_url="https://a.test",
+            resume_text=None,
+            resume_filename=None,
+        )
+
+        assert compute_profile_content_hash(profile_a) == compute_profile_content_hash(profile_b)
+
+    def test_compute_profile_content_hash_differs_for_changed_content(self):
+        """Changing one hashed field changes the hash."""
+        profile_a = Mock(
+            github_username="octocat",
+            portfolio_url="https://a.test",
+            resume_text=None,
+            resume_filename=None,
+        )
+        profile_b = Mock(
+            github_username="octocat",
+            portfolio_url="https://b.test",
+            resume_text=None,
+            resume_filename=None,
+        )
+
+        assert compute_profile_content_hash(profile_a) != compute_profile_content_hash(profile_b)
+
+    @pytest.mark.asyncio
+    async def test_find_completed_review_by_hash_returns_match(self, mock_db_session):
+        """A matching completed review is returned."""
+        profile_id = uuid4()
+        matching_review = Mock()
+        mock_result = Mock()
+        mock_result.scalars.return_value.first.return_value = matching_review
+        mock_db_session.execute = AsyncMock(return_value=mock_result)
+
+        result = await find_completed_review_by_hash(mock_db_session, profile_id, "abc123")
+
+        assert result is matching_review
+
+    @pytest.mark.asyncio
+    async def test_find_completed_review_by_hash_returns_none_when_no_match(self, mock_db_session):
+        """No matching completed review returns None (a cache miss)."""
+        profile_id = uuid4()
+        mock_result = Mock()
+        mock_result.scalars.return_value.first.return_value = None
+        mock_db_session.execute = AsyncMock(return_value=mock_result)
+
+        result = await find_completed_review_by_hash(mock_db_session, profile_id, "abc123")
+
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_create_review_stores_content_hash(self, mock_db_session):
+        """create_review persists the given content_hash on the new record."""
+        profile_id = uuid4()
+        user_id = uuid4()
+
+        with patch("core.services.review_service.Review") as MockReview:
+            MockReview.return_value = Mock()
+            await create_review(mock_db_session, profile_id, user_id, content_hash="deadbeef")
+
+            call_kwargs = MockReview.call_args[1]
+            assert call_kwargs["content_hash"] == "deadbeef"
+
+    @pytest.mark.asyncio
+    async def test_create_or_reuse_review_reuses_completed_review(self, mock_db_session):
+        """An identical, already-completed review is reused instead of rescheduled."""
+        profile = Mock(
+            id=uuid4(),
+            github_username="octocat",
+            portfolio_url=None,
+            resume_text=None,
+            resume_filename=None,
+        )
+        user_id = uuid4()
+        cached_review = Mock()
+        cached_review.status = "complete"
+
+        mock_result = Mock()
+        mock_result.scalars.return_value.first.return_value = cached_review
+        mock_db_session.execute = AsyncMock(return_value=mock_result)
+
+        review, is_new = await create_or_reuse_review(mock_db_session, profile, user_id)
+
+        assert review is cached_review
+        assert is_new is False
+        mock_db_session.add.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_create_or_reuse_review_creates_new_when_no_completed_match(
+        self, mock_db_session
+    ):
+        """No completed match falls back to creating a new pending review."""
+        profile = Mock(
+            id=uuid4(),
+            github_username="octocat",
+            portfolio_url=None,
+            resume_text=None,
+            resume_filename=None,
+        )
+        user_id = uuid4()
+
+        mock_result = Mock()
+        mock_result.scalars.return_value.first.return_value = None
+        mock_db_session.execute = AsyncMock(return_value=mock_result)
+
+        review, is_new = await create_or_reuse_review(mock_db_session, profile, user_id)
+
+        assert is_new is True
+        mock_db_session.add.assert_called_once()
