@@ -138,18 +138,18 @@ class TestOutputParser:
         # Should return empty list or handle gracefully
         assert isinstance(result, list)
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="issue #69 (manifest H-02): output parser calls .items() on a JSON array fallback",
-    )
     def test_json_array_fallback(self):
         """Test handling of JSON array (not dict)."""
         raw_output = json.dumps(["First feedback item", "Second feedback item"])
 
         result = parse_review_output(raw_output)
 
-        # May fall back to plaintext or handle specially
         assert isinstance(result, list)
+        assert len(result) == 2
+        assert [section.content for section in result] == [
+            "First feedback item",
+            "Second feedback item",
+        ]
 
     def test_very_long_plain_text(self):
         """Test parsing very long plain text."""
