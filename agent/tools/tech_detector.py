@@ -159,4 +159,5 @@ class TechDetector(BaseTool):
             "/venv/",
         ]
 
-        return any(pattern in filepath for pattern in skip_patterns)
+        # Prefix "/" so top-level dirs ("node_modules/x.js") match like nested ones
+        return any(pattern in "/" + filepath for pattern in skip_patterns)
