@@ -4,6 +4,7 @@ from dataclasses import dataclass
 import structlog
 
 from .chunking.strategy_selector import StrategySelector
+from .core.models.ingested_source import IngestedSource
 from .embeddings.batch_processor import BatchEmbeddingProcessor
 from .embeddings.provider import EmbeddingProvider
 from .parsers.readme_parser import ReadmeParser
@@ -294,11 +295,7 @@ class IngestionPipeline:
         try:
             # Query database for existing source
             # This assumes a table/model named IngestedSource
-            existing = (
-                self.db_session.query("IngestedSource")  # Placeholder - actual query depends on ORM
-                .filter_by(source_id=source_id)
-                .first()
-            )
+            existing = self.db_session.query(IngestedSource).filter_by(source_id=source_id).first()
 
             if existing:
                 logger.info("Source already ingested, skipping", source_id=source_id)
