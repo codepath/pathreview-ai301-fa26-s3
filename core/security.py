@@ -32,9 +32,14 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         hashed_password: Previously hashed password to compare against
 
     Returns:
-        True if password matches, False otherwise
+        True if password matches, False otherwise, including when the
+        stored hash is not a format passlib recognizes or the password
+        is oversized
     """
-    return bool(pwd_context.verify(plain_password, hashed_password))
+    try:
+        return bool(pwd_context.verify(plain_password, hashed_password))
+    except ValueError:
+        return False
 
 
 def create_access_token(data: dict[str, Any], expires_delta: timedelta | None = None) -> str:
