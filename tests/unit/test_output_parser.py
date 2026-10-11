@@ -138,18 +138,56 @@ class TestOutputParser:
         # Should return empty list or handle gracefully
         assert isinstance(result, list)
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="issue #69 (manifest H-02): output parser calls .items() on a JSON array fallback",
+    @pytest.mark.parametrize("fenced", [False, True], ids=["raw", "fenced"])
+    @pytest.mark.parametrize(
+        "items",
+        [
+            ["First feedback item", "Second feedback item"],
+            [],
+            [{"skills": "Python", "suggestions": ["Learn Go"]}],
+            ["feedback", 1, None, ["nested"]],
+        ],
+        ids=["strings", "empty", "objects", "mixed"],
     )
-    def test_json_array_fallback(self):
-        """Test handling of JSON array (not dict)."""
-        raw_output = json.dumps(["First feedback item", "Second feedback item"])
+    def test_json_array_fallback(self, items, fenced):
+        """Preserve arrays as plaintext instead of passing them to the dict parser."""
+        raw_output = json.dumps(items)
+        if fenced:
+            raw_output = f"```json\n{raw_output}\n```"
 
         result = parse_review_output(raw_output)
 
-        # May fall back to plaintext or handle specially
-        assert isinstance(result, list)
+        assert result == [
+            FeedbackSection(
+                section_name="general_feedback",
+                content=raw_output,
+                confidence=0.7,
+                suggestions=[],
+            )
+        ]
+
+    def test_json_array_fallback_preserves_surrounding_text(self):
+        """The fallback must retain prose as well as the fenced array."""
+        raw_output = 'Intro\n```json\n["First feedback item"]\n```\nFollow-up'
+
+        result = parse_review_output(raw_output)
+
+        assert result == [FeedbackSection("general_feedback", raw_output, 0.7, [])]
+
+    @pytest.mark.parametrize("fenced", [False, True], ids=["raw", "fenced"])
+    def test_json_object_output_is_preserved(self, fenced):
+        """Type dispatch must retain section names, content, confidence, and suggestions."""
+        nested = {"current": "Python", "suggestions": ["Learn Go"]}
+        raw_output = json.dumps({"summary": "Looks good", "skills": nested})
+        if fenced:
+            raw_output = f"```json\n{raw_output}\n```"
+
+        result = parse_review_output(raw_output)
+
+        assert result == [
+            FeedbackSection("summary", "Looks good", 0.85, []),
+            FeedbackSection("skills", json.dumps(nested), 0.9, ["Learn Go"]),
+        ]
 
     def test_very_long_plain_text(self):
         """Test parsing very long plain text."""

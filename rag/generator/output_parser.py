@@ -38,14 +38,16 @@ def parse_review_output(raw: str) -> list[FeedbackSection]:
         json_str = json_match.group(1)
         try:
             data = json.loads(json_str)
-            return _parse_json_output(data)
+            if isinstance(data, dict):
+                return _parse_json_output(data)
         except json.JSONDecodeError:
             logger.warning("json_parsing_failed_in_fence", json_snippet=json_str[:100])
 
     # Try raw JSON
     try:
         data = json.loads(raw)
-        return _parse_json_output(data)
+        if isinstance(data, dict):
+            return _parse_json_output(data)
     except json.JSONDecodeError:
         logger.warning("raw_json_parsing_failed")
 
