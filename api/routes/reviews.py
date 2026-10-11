@@ -7,8 +7,9 @@ from api.middleware.auth import get_current_user
 from api.schemas.review import ReviewCreate, ReviewListResponse, ReviewResponse
 from core.database import get_db
 from core.models.user import User
+from core.services.profile_service import get_profile
 from core.services.review_service import (
-    create_review,
+    create_or_reuse_review,
     get_review,
     list_reviews,
     process_review,
@@ -28,26 +29,41 @@ async def create_review_endpoint(
 ):
     """
     Create a new review for a profile.
-    Triggers ingestion pipeline and agent orchestration asynchronously.
-    Returns review with status="pending" immediately.
+    Triggers ingestion pipeline and agent orchestration asynchronously, unless
+    a completed review already exists for this profile's current content.
+    Returns review with status="pending" (new) or "complete" (reused) immediately.
     """
     try:
-        # Create review with status="pending"
-        review = await create_review(
+        profile = await get_profile(db=db, profile_id=data.profile_id, user_id=current_user.id)
+        if not profile:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Profile not found",
+            )
+
+        review, is_new = await create_or_reuse_review(
             db=db,
-            profile_id=data.profile_id,
+            profile=profile,
             user_id=current_user.id,
         )
 
-        # Add background task for processing
-        background_tasks.add_task(process_review, db, review.id, data.profile_id)
+        if is_new:
+            # Add background task for processing
+            background_tasks.add_task(process_review, db, review.id, data.profile_id)
 
-        log.info(
-            "review_created",
-            review_id=str(review.id),
-            profile_id=str(data.profile_id),
-            user_id=str(current_user.id),
-        )
+            log.info(
+                "review_created",
+                review_id=str(review.id),
+                profile_id=str(data.profile_id),
+                user_id=str(current_user.id),
+            )
+        else:
+            log.info(
+                "review_cache_hit",
+                review_id=str(review.id),
+                profile_id=str(data.profile_id),
+                user_id=str(current_user.id),
+            )
 
         return ReviewResponse.model_validate(review)
 

@@ -1,3 +1,4 @@
+import hashlib
 import json
 from datetime import datetime
 from uuid import UUID
@@ -13,10 +14,50 @@ from core.models.review import Review
 log = structlog.get_logger()
 
 
+def compute_profile_content_hash(profile: Profile) -> str:
+    """
+    Deterministic hash of the profile fields that feed review generation.
+    Two profiles with identical values here produce the same key.
+    """
+    payload = {
+        "github_username": profile.github_username,
+        "portfolio_url": profile.portfolio_url,
+        "resume_text": profile.resume_text,
+        "resume_filename": profile.resume_filename,
+    }
+    serialized = json.dumps(payload, sort_keys=True)
+    return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+
+
+async def find_completed_review_by_hash(
+    db,
+    profile_id: UUID,
+    content_hash: str,
+) -> Review | None:
+    """
+    Look up a completed review for this profile with a matching content hash.
+    Pending, failed, and hash-less reviews are never returned as a hit.
+    """
+    stmt = (
+        select(Review)
+        .where(
+            and_(
+                Review.profile_id == profile_id,
+                Review.content_hash == content_hash,
+                Review.status == "complete",
+            )
+        )
+        .order_by(Review.created_at.desc())
+    )
+    result = await db.execute(stmt)
+    return result.scalars().first()
+
+
 async def create_review(
     db,
     profile_id: UUID,
     user_id: UUID,
+    content_hash: str | None = None,
 ) -> Review:
     """
     Create a new review with status="pending".
@@ -26,11 +67,32 @@ async def create_review(
         status="pending",
         sections=None,
         overall_score=None,
+        content_hash=content_hash,
     )
     db.add(review)
     await db.commit()
     await db.refresh(review)
     return review
+
+
+async def create_or_reuse_review(
+    db,
+    profile: Profile,
+    user_id: UUID,
+) -> tuple[Review, bool]:
+    """
+    Return a review for this profile's current content, reusing a completed
+    review for identical content instead of scheduling a new pipeline run.
+    Returns (review, is_new); is_new is False when an existing review was
+    reused and no processing should be scheduled.
+    """
+    content_hash = compute_profile_content_hash(profile)
+    cached = await find_completed_review_by_hash(db, profile.id, content_hash)
+    if cached:
+        return cached, False
+
+    review = await create_review(db, profile.id, user_id, content_hash=content_hash)
+    return review, True
 
 
 async def get_review(
