@@ -91,12 +91,14 @@ class StructuralChunker(BaseChunker):
             if heading_match:
                 # Save previous section if exists
                 if current_section_lines:
-                    if heading_stack:
+                    content = "\n".join(current_section_lines).strip()
+                    # Text before the first heading has no path; keep it if non-blank
+                    if heading_stack or content:
                         sections.append(
                             {
-                                "content": "\n".join(current_section_lines).strip(),
+                                "content": content,
                                 "path": [h[1] for h in heading_stack],
-                                "level": heading_stack[-1][0] if heading_stack else 0,
+                                "level": current_level,
                             }
                         )
                     current_section_lines = []
@@ -110,23 +112,20 @@ class StructuralChunker(BaseChunker):
                     heading_stack.pop()
 
                 heading_stack.append((heading_level, heading_text))
-                # Seeded defect (issue #56): the tracked heading level is never read back,
-                # so heading-less documents get dropped. Leave as-is -- removing the
-                # assignment would hide the bug from students.
-                current_level = heading_level  # noqa: F841
+                current_level = heading_level
 
             else:
-                # Regular content line
-                if heading_stack or current_section_lines:  # Only collect if we have a heading
-                    current_section_lines.append(line)
+                # Regular content line (level 0 until the first heading)
+                current_section_lines.append(line)
 
         # Save final section
-        if current_section_lines and heading_stack:
+        content = "\n".join(current_section_lines).strip()
+        if current_section_lines and (heading_stack or content):
             sections.append(
                 {
-                    "content": "\n".join(current_section_lines).strip(),
+                    "content": content,
                     "path": [h[1] for h in heading_stack],
-                    "level": heading_stack[-1][0] if heading_stack else 0,
+                    "level": current_level,
                 }
             )
 
