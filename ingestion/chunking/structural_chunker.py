@@ -80,13 +80,17 @@ class StructuralChunker(BaseChunker):
         Returns list of dicts with: content, path (breadcrumb), level
         """
         lines = text.split("\n")
+        heading_pattern = re.compile(r"^(#{1,6})\s+(.+)$")
+        if text.strip() and not any(heading_pattern.match(line) for line in lines):
+            return [{"content": text.strip(), "path": [], "level": 0}]
+
         sections = []
         heading_stack = []  # Stack of (level, heading_text)
         current_section_lines = []
         current_level = 0
 
         for line in lines:
-            heading_match = re.match(r"^(#{1,6})\s+(.+)$", line)
+            heading_match = heading_pattern.match(line)
 
             if heading_match:
                 # Save previous section if exists

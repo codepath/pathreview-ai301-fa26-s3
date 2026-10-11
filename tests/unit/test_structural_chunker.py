@@ -25,17 +25,53 @@ class TestStructuralChunker:
         result = chunker.chunk("   \n\n  ", {})
         assert result == []
 
-    @pytest.mark.xfail(
-        strict=True, reason="issue #56: structural chunker drops documents with no headings"
-    )
     def test_document_with_no_headings(self, chunker):
-        """Test document with no headings returns single chunk."""
+        """Retain plain text and source metadata without inventing a heading."""
         text = "This is plain text without any markdown headings. " * 20
-        result = chunker.chunk(text, {"source": "test"})
+        metadata = {"source": "test", "document_id": "headingless-56"}
+        result = chunker.chunk(text, metadata)
 
-        assert len(result) >= 1
+        assert len(result) == 1
         assert isinstance(result[0], Chunk)
-        assert all(isinstance(c, Chunk) for c in result)
+        assert result[0].text == text.strip()
+        assert result[0].metadata["heading_path"] == ""
+        assert result[0].metadata["heading_level"] == 0
+        assert result[0].metadata["source"] == "test"
+        assert result[0].metadata["document_id"] == "headingless-56"
+        assert metadata == {"source": "test", "document_id": "headingless-56"}
+
+    def test_multiline_headingless_document(self, chunker):
+        """Preserve short multiline text and metadata without adding a heading."""
+        text = "  First plain line.\n\nSecond plain line.\n- A plain bullet.\n  "
+        metadata = {"source": "multiline"}
+
+        result = chunker.chunk(text, metadata)
+
+        assert len(result) == 1
+        assert result[0].text == text.strip()
+        assert result[0].metadata["heading_path"] == ""
+        assert result[0].metadata["heading_level"] == 0
+        assert result[0].metadata["source"] == "multiline"
+        assert metadata == {"source": "multiline"}
+
+    def test_large_headingless_document_sub_chunked(self, chunker):
+        """Sub-chunk large plain text without losing numbered sentences."""
+        sentences = [f"Sentence {i:04d} contains unique plain content." for i in range(200)]
+        text = " ".join(sentences)
+        metadata = {"source": "large-plain", "document_id": "large-56"}
+        assert len(chunker.encoder.encode(text)) > chunker.SECTION_TOKEN_LIMIT
+
+        result = chunker.chunk(text, metadata)
+
+        assert len(result) > 1
+        assert all(isinstance(chunk, Chunk) and chunk.text.strip() for chunk in result)
+        assert all(any(sentence in chunk.text for chunk in result) for sentence in sentences)
+        for chunk in result:
+            assert chunk.metadata["heading_path"] == ""
+            assert chunk.metadata["heading_level"] == 0
+            assert chunk.metadata["source"] == "large-plain"
+            assert chunk.metadata["document_id"] == "large-56"
+        assert metadata == {"source": "large-plain", "document_id": "large-56"}
 
     def test_document_with_nested_headings(self, chunker):
         """Test document with nested headings preserves heading_path."""
