@@ -138,18 +138,42 @@ class TestOutputParser:
         # Should return empty list or handle gracefully
         assert isinstance(result, list)
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="issue #69 (manifest H-02): output parser calls .items() on a JSON array fallback",
-    )
     def test_json_array_fallback(self):
-        """Test handling of JSON array (not dict)."""
+        """Test that a raw JSON array falls back to a single plaintext section."""
         raw_output = json.dumps(["First feedback item", "Second feedback item"])
 
         result = parse_review_output(raw_output)
 
-        # May fall back to plaintext or handle specially
-        assert isinstance(result, list)
+        assert len(result) == 1
+        section = result[0]
+        assert isinstance(section, FeedbackSection)
+        assert section.section_name == "general_feedback"
+        assert section.content == raw_output
+
+    def test_fenced_json_array_fallback(self):
+        """Test that a fenced JSON array keeps the full response, fence included."""
+        array_json = json.dumps(["First feedback item", "Second feedback item"])
+        raw_output = f"```json\n{array_json}\n```"
+
+        result = parse_review_output(raw_output)
+
+        assert len(result) == 1
+        section = result[0]
+        assert section.section_name == "general_feedback"
+        assert section.content == raw_output
+        assert section.content.startswith("```json\n")
+        assert section.content.endswith("\n```")
+
+    def test_empty_json_array_fallback(self):
+        """Test that an empty JSON array falls back to a single plaintext section."""
+        raw_output = "[]"
+
+        result = parse_review_output(raw_output)
+
+        assert len(result) == 1
+        section = result[0]
+        assert section.section_name == "general_feedback"
+        assert section.content == "[]"
 
     def test_very_long_plain_text(self):
         """Test parsing very long plain text."""
