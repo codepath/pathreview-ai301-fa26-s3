@@ -159,4 +159,7 @@ class TechDetector(BaseTool):
             "/venv/",
         ]
 
-        return any(pattern in filepath for pattern in skip_patterns)
+        return any(
+            pattern in filepath or filepath.startswith(pattern.lstrip("/"))
+            for pattern in skip_patterns
+        )
