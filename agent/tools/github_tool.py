@@ -81,6 +81,7 @@ class GitHubTool(BaseTool):
         response.raise_for_status()
 
         repo_json = response.json()
+        default_branch = repo_json.get("default_branch", "main")
 
         # Extract metadata, handling null values
         metadata = {
@@ -94,6 +95,7 @@ class GitHubTool(BaseTool):
             "has_readme": self._has_readme(username, repo_name),
             "topics": repo_json.get("topics", []),
             "homepage": repo_json.get("homepage") or "",
+            "file_structure": self._fetch_file_structure(username, repo_name, default_branch),
         }
 
         logger.info(
@@ -105,6 +107,31 @@ class GitHubTool(BaseTool):
         )
 
         return metadata
+
+    def _fetch_file_structure(
+        self, username: str, repo_name: str, default_branch: str
+    ) -> list[str]:
+        """Fetch repository file paths from the GitHub tree API."""
+        url = f"{self.base_url}/repos/{username}/{repo_name}" f"/git/trees/{default_branch}"
+
+        headers = {}
+        if self.api_token:
+            headers["Authorization"] = f"token {self.api_token}"
+
+        try:
+            response = httpx.get(
+                url,
+                headers=headers,
+                params={"recursive": "1"},
+                timeout=10.0,
+            )
+            response.raise_for_status()
+
+            tree_json = response.json()
+
+            return [item["path"] for item in tree_json.get("tree", []) if item.get("path")]
+        except Exception:
+            return []
 
     def _has_readme(self, username: str, repo_name: str) -> bool:
         """Check if repository has a README file.
