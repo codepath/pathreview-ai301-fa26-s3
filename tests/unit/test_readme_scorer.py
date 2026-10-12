@@ -14,26 +14,55 @@ class TestReadmeScorer:
         """Create a ReadmeScorer instance."""
         return ReadmeScorer()
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="issue #63: README scorer fixture is too short for its own word-count assertion",
-    )
     def test_readme_with_all_quality_signals(self, scorer):
         """Test README with all quality signals returns high score."""
         readme = """
         # Project Name
         A comprehensive project description.
 
+        Project Name is a small web service that collects reading notes from
+        several sources, groups them by book and topic, and lets you search
+        them from one place. It started as a weekend tool for a study group
+        and grew into something the whole group uses every week. The goal is
+        to keep the setup simple enough that a new contributor can run it on
+        a laptop in a few minutes, while still being solid enough to deploy
+        for a small team.
+
+        The service exposes a JSON API and a minimal web page. Notes are
+        stored in PostgreSQL, and full-text search uses the database's
+        built-in text search, so there is no separate search server to run.
+
         ## Installation
         ```bash
         pip install package
         ```
+
+        You need Python 3.9 or newer and a running PostgreSQL server. Create
+        a virtual environment first so the dependencies stay separate from
+        your system packages. After installing, copy the example settings
+        file to a new file named settings.toml and fill in your database
+        address, user name, and password. Then run the migration command
+        once to create the tables. If the migration fails, check that the
+        database user is allowed to create tables in the target database.
 
         ## Usage
         ```python
         import package
         package.run()
         ```
+
+        Calling run starts the web server on port 8000 by default. Open the
+        home page in a browser to add a note, or send a POST request to the
+        notes endpoint with a title, a body, and an optional list of tags.
+        Each note gets an identifier that you can use to read, update, or
+        delete it later. The search endpoint takes a query string and
+        returns matching notes ordered by how well they match, with the
+        newest notes first when two results score the same.
+
+        You can also import notes in bulk from a CSV file with one note per
+        row. The importer skips rows that are missing a title and prints a
+        short report at the end that lists how many rows were added, skipped,
+        or rejected, so you can fix the file and run it again.
 
         ## Features
         - Feature 1
@@ -50,6 +79,34 @@ class TestReadmeScorer:
 
         ## Live Demo
         [Try it here](https://demo.example.com)
+
+        The public instance resets every night, so feel free to add test
+        notes there. Please do not store anything private on it.
+
+        ## Configuration
+        All settings live in settings.toml. The most important ones are the
+        database address, the port the server listens on, and the page size
+        used by the search endpoint. Every setting can also be overridden
+        with an environment variable of the same name in capital letters,
+        which is the easiest way to configure the service in a container.
+
+        ## Running the Tests
+        The test suite uses pytest. Unit tests run without a database and
+        finish in a few seconds. Integration tests need a throwaway
+        PostgreSQL database; point the test settings at it before running
+        them, because the tests drop and recreate every table they use.
+
+        ## Contributing
+        Contributions are welcome. Open an issue first to describe the bug
+        or idea, so we can agree on the approach before you write code. Keep
+        each pull request focused on one change, add or update tests for the
+        behavior you touch, and run the linter and the full test suite
+        locally before asking for a review. Be kind in reviews and
+        discussions; everyone here is learning.
+
+        ## License
+        This project is released under the MIT License. See the LICENSE file
+        for the full text.
         """
 
         result = scorer.execute({"readme_content": readme})
