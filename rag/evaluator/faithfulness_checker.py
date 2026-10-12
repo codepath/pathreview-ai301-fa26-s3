@@ -8,52 +8,6 @@ logger = structlog.get_logger()
 
 SUPPORT_THRESHOLD = 0.5
 
-STOP_WORDS = frozenset(
-    {
-        "a",
-        "an",
-        "the",
-        "is",
-        "are",
-        "was",
-        "were",
-        "be",
-        "been",
-        "and",
-        "or",
-        "but",
-        "in",
-        "of",
-        "to",
-        "for",
-        "that",
-    }
-)
-
-# Example: "The developer has strong Python and Django skills." is checked
-# on {"python", "django"} only.
-GENERIC_WORDS = frozenset(
-    {
-        "developer",
-        "candidate",
-        "has",
-        "have",
-        "shows",
-        "show",
-        "knows",
-        "know",
-        "knowledge",
-        "expert",
-        "expertise",
-        "experience",
-        "experienced",
-        "skilled",
-        "skill",
-        "skills",
-        "strong",
-    }
-)
-
 
 class FaithfulnessChecker:
     """Verify that feedback claims are supported by context."""
@@ -119,18 +73,19 @@ class FaithfulnessChecker:
         claims = [s.strip() for s in sentences if len(s.split()) >= 2]
         return claims[:10]  # Limit to 10 claims for scoring
 
-    @staticmethod
-    def _content_tokens(text: str) -> set[str]:
-        """Tokenize text into the words a claim is checked on.
+    @classmethod
+    def _is_supported(cls, claim: str, context: str) -> bool:
+        """Check if a claim is supported by context.
 
         Args:
-            text: Claim or context text
+            claim: Claim text
+            context: Context text
 
         Returns:
-            Lowercase words with punctuation, stop words, and generic words removed
+            True if claim is supported
         """
-        tokens = set(re.findall(r"[a-z0-9+#]+", text.lower()))
-        return tokens - STOP_WORDS - GENERIC_WORDS
+        ratio = cls._support_ratio(claim, context)
+        return ratio is not None and ratio >= SUPPORT_THRESHOLD
 
     @classmethod
     def _support_ratio(cls, claim: str, context: str) -> float | None:
@@ -149,16 +104,56 @@ class FaithfulnessChecker:
         context_tokens = cls._content_tokens(context)
         return len(claim_tokens & context_tokens) / len(claim_tokens)
 
-    @classmethod
-    def _is_supported(cls, claim: str, context: str) -> bool:
-        """Check if a claim is supported by context.
+    @staticmethod
+    def _content_tokens(text: str) -> set[str]:
+        """Tokenize text into the words a claim is checked on.
 
         Args:
-            claim: Claim text
-            context: Context text
+            text: Claim or context text
 
         Returns:
-            True if claim is supported
+            Lowercase words with punctuation, stop words, and generic words removed
         """
-        ratio = cls._support_ratio(claim, context)
-        return ratio is not None and ratio >= SUPPORT_THRESHOLD
+        tokens = set(re.findall(r"[a-z0-9+#]+", text.lower()))
+        # Filter out common stop words
+        stop_words = {
+            "a",
+            "an",
+            "the",
+            "is",
+            "are",
+            "was",
+            "were",
+            "be",
+            "been",
+            "and",
+            "or",
+            "but",
+            "in",
+            "of",
+            "to",
+            "for",
+            "that",
+        }
+        # Example: "The developer has strong Python and Django skills." is checked
+        # on {"python", "django"} only.
+        generic_words = {
+            "developer",
+            "candidate",
+            "has",
+            "have",
+            "shows",
+            "show",
+            "knows",
+            "know",
+            "knowledge",
+            "expert",
+            "expertise",
+            "experience",
+            "experienced",
+            "skilled",
+            "skill",
+            "skills",
+            "strong",
+        }
+        return tokens - stop_words - generic_words
