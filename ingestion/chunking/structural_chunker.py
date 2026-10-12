@@ -38,6 +38,10 @@ class StructuralChunker(BaseChunker):
         # Extract sections with heading hierarchy
         sections = self._extract_sections(text)
 
+        # Fallback for headingless documents
+        if not sections:
+            sections = [{"content": text.strip(), "path": [], "level": 0}]
+
         chunks = []
         for section in sections:
             heading_path = " > ".join(section["path"])
