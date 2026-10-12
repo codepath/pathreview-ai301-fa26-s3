@@ -6,6 +6,17 @@ import pytest
 
 from rag.generator.prompt_templates import PROMPT_TEMPLATES, get_template
 
+# MD5 of each template's content, keyed by (template_name, version).
+# To change a template, add a new version key and record its hash here;
+# never edit the content of an existing version in place.
+EXPECTED_TEMPLATE_HASHES = {
+    ("first_impression", "v1"): "ef6429d3a6d426b3c9913381020dd7e4",
+    ("gaps_feedback", "v1"): "e5bfd6644fd62a0fe01f60c9aa456762",
+    ("presentation_feedback", "v1"): "43549ee59818dfc8eb3627554a563b2e",
+    ("projects_feedback", "v1"): "d346d01b24ee7aad92594014a46557af",
+    ("skills_feedback", "v1"): "f93103d823482a2e65decc6653e4ee5c",
+}
+
 
 @pytest.mark.unit
 class TestPromptTemplates:
@@ -189,19 +200,37 @@ class TestPromptTemplates:
         assert template_default == template_v1
 
     def test_template_snapshot_content_hash(self):
-        """Snapshot test: verify template content hash."""
-        # Create hash of all template content
-        template_content = ""
+        """Snapshot test: each template's content matches its recorded hash.
+
+        Compares the MD5 of every (template_name, version) pair in
+        PROMPT_TEMPLATES against EXPECTED_TEMPLATE_HASHES. Fails when a
+        template's content changed under an existing version, or when a
+        version has no recorded hash.
+
+        Raises:
+            AssertionError: If any template is unrecorded or its hash differs.
+        """
+        failures = []
         for name in sorted(PROMPT_TEMPLATES.keys()):
             for version in sorted(PROMPT_TEMPLATES[name].keys()):
-                template_content += PROMPT_TEMPLATES[name][version]
+                content_hash = hashlib.md5(PROMPT_TEMPLATES[name][version].encode()).hexdigest()
+                expected_hash = EXPECTED_TEMPLATE_HASHES.get((name, version))
 
-        content_hash = hashlib.md5(template_content.encode()).hexdigest()
+                if expected_hash is None:
+                    failures.append(
+                        f"{name} {version} has no recorded hash. If this is a "
+                        f"new version, add ({name!r}, {version!r}): "
+                        f"{content_hash!r} to EXPECTED_TEMPLATE_HASHES."
+                    )
+                elif content_hash != expected_hash:
+                    failures.append(
+                        f"{name} {version} content changed (expected hash "
+                        f"{expected_hash}, got {content_hash}). Don't edit an "
+                        f"existing version in place: add a new version key and "
+                        f"record its hash in EXPECTED_TEMPLATE_HASHES."
+                    )
 
-        # Expected hash - update if templates intentionally change
-        # This helps detect unintended changes to templates
-        assert isinstance(content_hash, str)
-        assert len(content_hash) == 32  # MD5 hash length
+        assert not failures, "\n".join(failures)
 
     def test_skills_feedback_requests_json_format(self):
         """Test skills_feedback requests JSON output."""
