@@ -21,8 +21,9 @@ PathReview analyzes GitHub profiles, resumes, and project repositories to genera
 git clone https://github.com/codepath/pathreview.git
 cd pathreview
 
-# Configure environment (add your OPENROUTER_API_KEY to .env)
+# Configure environment (the default mock provider needs no API key)
 cp .env.example .env
+# To use OpenRouter, set LLM_PROVIDER=openrouter and OPENROUTER_API_KEY in .env
 
 # Start backing services — must be running before make setup
 docker compose up -d
