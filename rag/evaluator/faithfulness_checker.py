@@ -6,6 +6,8 @@ import structlog
 
 logger = structlog.get_logger()
 
+SUPPORT_THRESHOLD = 0.5
+
 
 class FaithfulnessChecker:
     """Verify that feedback claims are supported by context."""
@@ -37,13 +39,18 @@ class FaithfulnessChecker:
         # Concatenate context text
         context_text = " ".join([chunk.get("text", "") for chunk in context_chunks])
 
-        # Check each claim for support
-        supported = 0
-        for claim in claims:
-            if self._is_supported(claim, context_text):
-                supported += 1
+        # Score each claim by the share of its content words the context backs
+        ratios = [
+            ratio
+            for claim in claims
+            if (ratio := self._support_ratio(claim, context_text)) is not None
+        ]
+        if not ratios:
+            logger.info("faithfulness_no_checkable_claims")
+            return 0.5  # Same neutral default as when no claims are extracted
 
-        score = supported / len(claims) if claims else 0.0
+        supported = sum(1 for ratio in ratios if ratio >= SUPPORT_THRESHOLD)
+        score = sum(ratios) / len(ratios)
 
         logger.info(
             "faithfulness_checked", claims_count=len(claims), supported_count=supported, score=score
@@ -63,11 +70,11 @@ class FaithfulnessChecker:
         """
         # Split by sentence (simple regex)
         sentences = re.split(r"[.!?]+", text)
-        claims = [s.strip() for s in sentences if s.strip() and len(s.strip()) > 10]
+        claims = [s.strip() for s in sentences if len(s.split()) >= 2]
         return claims[:10]  # Limit to 10 claims for scoring
 
-    @staticmethod
-    def _is_supported(claim: str, context: str) -> bool:
+    @classmethod
+    def _is_supported(cls, claim: str, context: str) -> bool:
         """Check if a claim is supported by context.
 
         Args:
@@ -77,12 +84,37 @@ class FaithfulnessChecker:
         Returns:
             True if claim is supported
         """
-        # Tokenize and check for keyword overlap
-        claim_tokens = set(claim.lower().split())
-        context_tokens = set(context.lower().split())
+        ratio = cls._support_ratio(claim, context)
+        return ratio is not None and ratio >= SUPPORT_THRESHOLD
 
-        # Require at least some meaningful overlap
-        overlap = claim_tokens & context_tokens
+    @classmethod
+    def _support_ratio(cls, claim: str, context: str) -> float | None:
+        """Share of a claim's content words that appear in the context.
+
+        Args:
+            claim: Claim text
+            context: Context text
+
+        Returns:
+            Ratio 0.0-1.0, or None if the claim has no content words to check
+        """
+        claim_tokens = cls._content_tokens(claim)
+        if not claim_tokens:
+            return None
+        context_tokens = cls._content_tokens(context)
+        return len(claim_tokens & context_tokens) / len(claim_tokens)
+
+    @staticmethod
+    def _content_tokens(text: str) -> set[str]:
+        """Tokenize text into the words a claim is checked on.
+
+        Args:
+            text: Claim or context text
+
+        Returns:
+            Lowercase words with punctuation, stop words, and generic words removed
+        """
+        tokens = set(re.findall(r"[a-z0-9+#]+", text.lower()))
         # Filter out common stop words
         stop_words = {
             "a",
@@ -103,6 +135,25 @@ class FaithfulnessChecker:
             "for",
             "that",
         }
-        meaningful_overlap = overlap - stop_words
-
-        return len(meaningful_overlap) >= 2
+        # Example: "The developer has strong Python and Django skills." is checked
+        # on {"python", "django"} only.
+        generic_words = {
+            "developer",
+            "candidate",
+            "has",
+            "have",
+            "shows",
+            "show",
+            "knows",
+            "know",
+            "knowledge",
+            "expert",
+            "expertise",
+            "experience",
+            "experienced",
+            "skilled",
+            "skill",
+            "skills",
+            "strong",
+        }
+        return tokens - stop_words - generic_words
