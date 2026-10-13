@@ -63,9 +63,6 @@ class TestTechDetector:
         detected_lower = [lang.lower() for lang in data["all_languages"]]
         # .ipynb should be treated as Python, not JSON
 
-    @pytest.mark.xfail(
-        strict=True, reason="issue #57: tech detector counts vendored/build-output files"
-    )
     def test_node_modules_excluded(self, detector):
         """Test node_modules/ directory is excluded from counts."""
         files = [
@@ -78,8 +75,9 @@ class TestTechDetector:
         result = detector.execute({"files": files})
 
         data = result.data
+        assert "JavaScript" not in data["all_languages"]
+        assert "Python" in data["all_languages"]
         assert data["primary_language"] == "Python"
-        # node_modules shouldn't dominate
 
     def test_vendor_files_excluded(self, detector):
         """Test vendor files are excluded."""
@@ -94,9 +92,6 @@ class TestTechDetector:
 
         # Python should be primary despite vendor files
 
-    @pytest.mark.xfail(
-        strict=True, reason="issue #57: tech detector counts vendored/build-output files"
-    )
     def test_build_directory_excluded(self, detector):
         """Test build directory is excluded."""
         files = [
@@ -108,7 +103,33 @@ class TestTechDetector:
         result = detector.execute({"files": files})
 
         data = result.data
+        assert "JavaScript" not in data["all_languages"]
+        assert "Python" in data["all_languages"]
         assert data["primary_language"] == "Python"
+
+    @pytest.mark.parametrize(
+        "filepath,expected_skip",
+        [
+            pytest.param("node_modules/index.js", True, id="node_modules-root"),
+            pytest.param("build/bundle.js", True, id="build-root"),
+            pytest.param("src/node_modules/index.js", True, id="node_modules-nested"),
+            pytest.param("repo/build/bundle.js", True, id="build-nested"),
+            pytest.param("/node_modules/index.js", True, id="node_modules-slash-prefixed"),
+            pytest.param("/build/bundle.js", True, id="build-slash-prefixed"),
+            pytest.param("node_modules-extra/index.js", False, id="node_modules-lookalike-root"),
+            pytest.param("build-tools/index.js", False, id="build-lookalike-root"),
+            pytest.param("build.py", False, id="build-lookalike-file"),
+            pytest.param("src/build-tools/app.py", False, id="build-lookalike-nested"),
+            pytest.param(
+                "src/node_modules-extra/app.py", False, id="node_modules-lookalike-nested"
+            ),
+            pytest.param("scripts/build", False, id="build-bare-name"),
+            pytest.param("tools/node_modules", False, id="node_modules-bare-name"),
+        ],
+    )
+    def test_should_skip_file_boundary(self, detector, filepath, expected_skip):
+        """Test _should_skip_file boundary matching for node_modules/build."""
+        assert detector._should_skip_file(filepath) is expected_skip
 
     def test_config_file_detection(self, detector):
         """Test detection from config files."""
