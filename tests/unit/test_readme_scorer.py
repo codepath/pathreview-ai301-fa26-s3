@@ -14,39 +14,108 @@ class TestReadmeScorer:
         """Create a ReadmeScorer instance."""
         return ReadmeScorer()
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="issue #63: README scorer fixture is too short for its own word-count assertion",
-    )
     def test_readme_with_all_quality_signals(self, scorer):
         """Test README with all quality signals returns high score."""
         readme = """
         # Project Name
         A comprehensive project description.
 
+        Project Name is a small web service that helps teams collect, organize, and review
+        short written feedback on shared documents. It exposes a JSON API for submitting
+        comments, groups related comments into threads, and produces a weekly summary that
+        highlights the discussions that still need a decision. The project started as an
+        internal tool and is now maintained as an open source example of a well-tested
+        FastAPI application.
+
         ## Installation
+        These steps assume a Unix-like shell. Windows users can follow the same steps from
+        WSL or adapt the virtual environment commands for PowerShell.
+
+        ### Prerequisites
+        - Python 3.9 or newer
+        - PostgreSQL 13 or newer, running locally or reachable over the network
+        - Git, for cloning the repository
+
+        ### Steps
+        1. Clone the repository and change into the project directory.
+        2. Create and activate a virtual environment so dependencies stay isolated from
+           your system Python.
+        3. Install the package and its runtime dependencies:
+
         ```bash
         pip install package
         ```
 
+        4. Copy the example environment file to `.env` and fill in your database
+           connection string.
+        5. Apply the database migrations before starting the server for the first time.
+
         ## Usage
+        After installation, you can start the service from Python. The `run` function reads
+        settings from the environment, connects to the database, and starts an HTTP server
+        on port 8000 by default.
+
         ```python
         import package
         package.run()
         ```
 
+        Once the server is running, open the interactive API documentation in your browser
+        to explore the available endpoints. You can create a document, attach comments to
+        it, and request a summary without writing any client code. For scripted access, any
+        HTTP client that can send JSON will work.
+
         ## Features
-        - Feature 1
-        - Feature 2
-        - Feature 3
+        - Threaded comments: replies stay attached to the comment they answer, so long
+          discussions remain easy to follow.
+        - Weekly summaries: a scheduled job collects open threads and lists the ones that
+          have gone more than five days without a response.
+        - Role-based access: owners, editors, and readers each see only the actions they
+          are allowed to take.
+        - Full-text search: comments are indexed so reviewers can find earlier decisions
+          by keyword.
+
+        ## Configuration
+        All settings are read from environment variables. The most important ones are
+        `DATABASE_URL`, which points at your PostgreSQL instance, and `SUMMARY_DAY`, which
+        controls the day of the week the summary job runs. Set `LOG_LEVEL` to `debug` while
+        developing to see every request in the console.
+
+        ## Troubleshooting
+        If the server exits immediately, check that `DATABASE_URL` is set and that the
+        database accepts connections from your machine. A "relation does not exist" error
+        usually means the migrations have not been applied yet. If summaries are never
+        generated, confirm that `SUMMARY_DAY` uses a full English day name such as
+        `monday`, and look for scheduler warnings in the log output. When reporting a
+        problem, include your Python version, operating system, and the relevant log lines.
 
         ## Tech Stack
         - Python 3.9
         - FastAPI
         - PostgreSQL
 
+        FastAPI was chosen for its type-driven request validation and automatic API
+        documentation. PostgreSQL provides reliable transactions and built-in full-text
+        search, which keeps the deployment to a single database without a separate search
+        service.
+
         ![Build Status](https://example.com/badge.svg)
         ![Coverage](https://example.com/coverage.svg)
+
+        ## Testing
+        The test suite uses pytest. Run it from the project root with your virtual
+        environment active. Unit tests run without a database, while integration tests
+        expect a disposable PostgreSQL database named in `TEST_DATABASE_URL`. Please add or
+        update tests alongside every change you make.
+
+        ## Contributing
+        Contributions are welcome. Open an issue to describe the bug or feature before
+        starting larger work, then create a branch, keep your commits focused, and open a
+        pull request that explains what changed and how you verified it.
+
+        ## License
+        This project is released under the MIT License. See the LICENSE file for the full
+        text.
 
         ## Live Demo
         [Try it here](https://demo.example.com)
