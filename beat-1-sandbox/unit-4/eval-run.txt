@@ -1,0 +1,55 @@
+# eval run written by run_eval.py at 2026-10-13T04:01:51Z
+# model: sonnet (pinned)
+# graded: C:\Users\frank\.claude\skills\pr-precheck
+# packages: 20 scored
+#   SKILL.md  sha256:12b536e5a6f5c5fb
+#   rubric.md  sha256:4b5b8dbfb810c388
+#   procedure.md  sha256:2ee60202b7e669aa
+#   evidence-guide.md  sha256:3531d2c944ebd5a0
+#
+grading 20 package(s) with the tool at C:\Users\frank\.claude\skills\pr-precheck, model sonnet, 5 worker(s)...
+  pkg-05: accept
+  pkg-03: reject
+  pkg-01: reject
+  pkg-04: reject
+  pkg-02: accept
+  pkg-06: reject
+  pkg-07: reject
+  pkg-09: reject
+  pkg-08: accept
+  pkg-10: reject
+  pkg-12: reject
+  pkg-11: accept
+  pkg-13: accept
+  pkg-14: reject
+  pkg-15: reject
+  pkg-17: reject
+  pkg-16: accept
+  pkg-18: reject
+  pkg-19: accept
+  pkg-20: reject
+
+item    category        gold    verdict  agree  note
+pkg-01  standards-wall  reject  reject   yes    
+pkg-02  clear-accept    accept  accept   yes    
+pkg-03  silent-drift    reject  reject   yes    
+pkg-04  not-tested      reject  reject   yes    
+pkg-05  clear-accept    accept  accept   yes    
+pkg-06  silent-drift    reject  reject   yes    
+pkg-07  not-tested      reject  reject   yes    
+pkg-08  clear-accept    accept  accept   yes    
+pkg-09  silent-drift    reject  reject   yes    
+pkg-10  not-tested      reject  reject   yes    
+pkg-11  clear-accept    accept  accept   yes    
+pkg-12  unreviewable    reject  reject   yes    
+pkg-13  clear-accept    accept  accept   yes    
+pkg-14  not-tested      reject  reject   yes    
+pkg-15  unreviewable    reject  reject   yes    
+pkg-16  clear-accept    accept  accept   yes    
+pkg-17  silent-drift    reject  reject   yes    
+pkg-18  unreviewable    reject  reject   yes    
+pkg-19  clear-accept    accept  accept   yes    
+pkg-20  standards-wall  reject  reject   yes    
+
+categories: clear-accept 7/7  not-tested 4/4  silent-drift 4/4  standards-wall 2/2  unreviewable 3/3
+agreement: 20/20 scored items  (bar: 18/20: PASS)

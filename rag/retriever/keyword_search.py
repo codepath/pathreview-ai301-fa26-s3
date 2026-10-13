@@ -20,6 +20,9 @@ class KeywordSearcher:
         Args:
             chunks: List of chunk dicts with 'text' field
         """
+        if not chunks:
+            logger.warning("keyword_index_empty_corpus")
+            return
         self.chunks = chunks
         tokenized_corpus = [self._tokenize(chunk["text"]) for chunk in chunks]
         self.bm25 = BM25Okapi(tokenized_corpus)
