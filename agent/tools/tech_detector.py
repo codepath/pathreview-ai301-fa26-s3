@@ -159,4 +159,6 @@ class TechDetector(BaseTool):
             "/venv/",
         ]
 
-        return any(pattern in filepath for pattern in skip_patterns)
+        return filepath.startswith(("node_modules/", "build/")) or any(
+            pattern in filepath for pattern in skip_patterns
+        )
