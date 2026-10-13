@@ -14,42 +14,140 @@ class TestReadmeScorer:
         """Create a ReadmeScorer instance."""
         return ReadmeScorer()
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="issue #63: README scorer fixture is too short for its own word-count assertion",
-    )
     def test_readme_with_all_quality_signals(self, scorer):
         """Test README with all quality signals returns high score."""
         readme = """
         # Project Name
-        A comprehensive project description.
+
+        Project Name is a sample application designed to demonstrate a complete and well-documented software project. The application provides a simple structure that can be used as an example for installation, usage, configuration, testing, deployment, and maintenance documentation. The goal of this README is to give contributors and users enough information to understand what the project does, how to set it up, and how to work with it successfully.
+
+        The project exposes a small service that can be installed locally and run as a Python application. It is intended to be easy to understand while still including the sections that are commonly expected in a mature open source project. The documentation below includes installation instructions, usage examples, configuration details, feature descriptions, development guidance, testing information, troubleshooting notes, and links to a live demonstration.
 
         ## Installation
+
+        The project requires Python 3.9 or newer. It is recommended to use a virtual environment so that project dependencies remain isolated from other Python applications installed on the system.
+
+        Create and activate a virtual environment before installing the package.
+
+        ```bash
+        python -m venv .venv
+        source .venv/bin/activate
+        ```
+
+        On Windows, activate the environment using the appropriate command for your shell.
+
+        After the environment is active, install the package with pip:
+
         ```bash
         pip install package
         ```
 
+        If you are working from a cloned development copy, you can install the project in editable mode so that local code changes are immediately reflected when you run the application.
+
+        ```bash
+        pip install -e .
+        ```
+
+        Once installation is complete, verify that the package can be imported successfully before continuing.
+
         ## Usage
+
+        The package can be imported and executed directly from Python.
+
         ```python
         import package
         package.run()
         ```
 
+        The run function starts the application using the default configuration. For local development, the application can be started from a terminal and accessed through the configured host and port.
+
+        A typical workflow is to install the project, start the application, make a request, inspect the response, and then stop the development process when testing is complete. Additional configuration options can be supplied through environment variables or a local configuration file.
+
         ## Features
-        - Feature 1
-        - Feature 2
-        - Feature 3
+
+        - Feature 1 provides the primary application workflow.
+        - Feature 2 adds support for configurable behavior.
+        - Feature 3 provides additional functionality for development and testing.
+        - Clear installation instructions for new contributors.
+        - Simple Python usage examples.
+        - Support for local development environments.
+        - Structured configuration options.
+        - Logging for important application events.
+        - Automated tests for core functionality.
+        - Documentation for common troubleshooting scenarios.
+
+        The project is intentionally organized so that each feature can be understood independently. This makes it easier for new contributors to identify where functionality is implemented and how changes should be tested.
+
+        ## Configuration
+
+        The application uses sensible defaults so that it can run immediately after installation. Users can override settings through environment variables when necessary.
+
+        Common configuration values may include the application host, port, database connection information, logging level, and environment name. Development environments can use local values, while production deployments should store sensitive configuration outside of source control.
+
+        Before deploying the project, review the configuration carefully and confirm that development-only options are disabled.
 
         ## Tech Stack
+
         - Python 3.9
         - FastAPI
         - PostgreSQL
 
+        Python is used for the main application logic. FastAPI provides the web application framework and request handling. PostgreSQL is used for persistent data storage. Together, these technologies provide a straightforward development environment that can support both local testing and production deployment.
+
+        ## Development
+
+        Contributors should begin by cloning the repository and installing the development dependencies. Changes should be made on a separate branch and tested locally before they are submitted for review.
+
+        Keep changes focused on one issue whenever possible. New behavior should include appropriate tests, and existing tests should continue to pass after the change.
+
+        Code should remain readable and consistent with the existing project structure. Before submitting a change, review the affected files and make sure temporary debugging output or unrelated modifications have not been included.
+
+        ## Testing
+
+        The project includes automated tests for important application behavior. Tests should be run before opening a pull request.
+
+        A typical test command is:
+
+        ```bash
+        pytest
+        ```
+
+        If a test fails, review the failure output and confirm that the test environment matches the expected setup. When fixing a bug, it is helpful to reproduce the failure before making the change and then run the same test again afterward to confirm that the behavior has been corrected.
+
+        ## Troubleshooting
+
+        If the package cannot be imported, confirm that the virtual environment is active and that the installation completed successfully.
+
+        If the application cannot connect to PostgreSQL, verify that the database service is running and that the configured connection values are correct.
+
+        If tests behave differently across environments, compare Python versions, installed dependency versions, environment variables, and repository state. Recording these details can make it easier for another contributor to reproduce the same result.
+
+        ## Project Structure
+
+        The project is organized into separate areas for application code, tests, configuration, and documentation. Application modules contain the runtime behavior, while the test suite verifies expected results. Keeping these responsibilities separate makes the codebase easier to navigate and maintain.
+
+        New contributors should begin with the README, then review the tests related to the feature they are changing. Existing tests often provide useful examples of how the application is expected to behave.
+
+        ## Contributing
+
+        Contributions are welcome. Before submitting a pull request, make sure the project installs correctly, the relevant tests pass, and the change is limited to the intended issue.
+
+        A useful contribution includes a clear explanation of what changed, why the change was necessary, and how the result was tested. Small, focused pull requests are generally easier to review and maintain than large changes that combine unrelated work.
+
+        ## Status
+
         ![Build Status](https://example.com/badge.svg)
         ![Coverage](https://example.com/coverage.svg)
 
+        The build status badge represents the current state of the automated build process, while the coverage badge provides a summary of test coverage.
+
         ## Live Demo
+
+        A demonstration deployment is available for users who want to explore the project without installing it locally.
+
         [Try it here](https://demo.example.com)
+
+        The live demo is intended for evaluation and basic experimentation. For development work, contributors should run the project locally so that they can inspect logs, change configuration, and run the full test suite.
         """
 
         result = scorer.execute({"readme_content": readme})
@@ -57,7 +155,7 @@ class TestReadmeScorer:
         assert result.success is True
         data = result.data
         assert data["has_readme"] is True
-        assert data["word_count"] > 100
+        assert data["word_count"] >= 500
         assert data["word_count_category"] == "comprehensive"
         assert data["has_installation_section"] is True
         assert data["has_usage_section"] is True
