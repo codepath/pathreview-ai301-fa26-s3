@@ -23,7 +23,7 @@ Request body: `multipart/form-data`
 |---|---|---:|---|---|
 | `github_username` | string | No | GitHub username to associate with the profile. | `octocat` |
 | `portfolio_url` | string | No | Portfolio or personal website URL for the profile. | `https://octocat.dev` |
-| `resume_file` | file | No | Resume upload. Accepted file types are PDF, Markdown, or plain text. | `resume.pdf` |
+| `resume_file` | file | No | Resume upload. Accepted file types are PDF (`application/pdf`), Markdown (`text/markdown`), or plain text (`text/plain`). | `resume.pdf` |
 
 Example:
 
