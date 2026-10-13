@@ -16,6 +16,10 @@ class BiasDetector:
         r"(?:bootcamp|self-taught)\s+(?:graduates?|developers?)\s+(?:lack|missing)\s+(?:rigor|fundamentals|proper\s+training)",
         r"(?:bootcamp|coding\s+bootcamp)\s+(?:doesn't|does\s+not)\s+prepare\s+(?:you|developers?)",
         r"(?:self-taught|bootcamp)\s+is\s+(?:not|never)\s+(?:equal|comparable)\s+to\s+(?:university|traditional|formal)",
+        r"(?:bootcamp|self-taught|online\s+course)\s+(?:education|training)\s+lacks",
+        r"(?:bootcamp|self-taught)\s+(?:graduates?|developers?|programmers?)\s+(?:can[’']t|cannot|won[’']t|will\s+not|lack)",
+        r"(?:bootcamp|self-taught)\s+(?:graduates?|developers?|programmers?)\s+(?:are|is)\s+(?:not|never)\s+(?:equal|comparable)",
+        r"(?:bootcamp|self-taught|online\s+course)\s+(?:attendance|education|training|background)\s+(?:means|implies)\s+(?:insufficient|inadequate|poor)",
     ]
 
     # Demographic assumptions (about age, background, identity)
@@ -23,6 +27,8 @@ class BiasDetector:
         r"(?:young|old|aged)\s+(?:person|developer|programmer)\s+(?:can't|cannot|won't|will\s+not)",
         r"(?:person\s+from|coming\s+from)\s+(?:poor|rich|working[\s-]?class)",
         r"(?:immigrant|international|foreign)\s+developers?.*(?:can't|cannot|won't|struggle)",
+        r"(?:young|old|older|younger|aged)\s+(?:people|developers?|programmers?)\s+(?:can[’']t|cannot|won[’']t|will\s+not)",
+        r"(?:people|developers?|programmers?)\s+from\s+(?:poor|rich|working[\s-]?class)",
     ]
 
     @staticmethod
