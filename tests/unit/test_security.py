@@ -215,10 +215,6 @@ class TestSecurity:
         assert isinstance(hashed, str)
         assert verify_password(long_password, hashed) is True
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="issue #72 (manifest H-05): password verify raises UnknownHashError instead of returning False",
-    )
     def test_verify_with_wrong_hash_format(self):
         """Test verify_password with non-bcrypt hash."""
         wrong_hash = "not_a_valid_bcrypt_hash"
@@ -227,6 +223,27 @@ class TestSecurity:
         result = verify_password("password", wrong_hash)
 
         assert result is False
+
+    @pytest.mark.parametrize(
+        "stored_hash",
+        [
+            pytest.param("not_a_valid_bcrypt_hash", id="unidentifiable"),
+            pytest.param("", id="empty"),
+            pytest.param("$2b$12$short", id="truncated-bcrypt"),
+            pytest.param(
+                "$5$rounds=535000$X8lpM1Zx0Qk9Yy3T$gqJ0nBu7oEJDcNsl0lVBrvWKKmNsBOSaUNzMvV.Y9G8",
+                id="other-scheme",
+            ),
+        ],
+    )
+    def test_verify_with_malformed_stored_hash_returns_false(self, stored_hash):
+        """Test verify_password fails closed for every unusable stored hash.
+
+        The truncated bcrypt value is the case a guard catching only
+        UnknownHashError would miss: passlib identifies the $2b$ prefix and
+        then raises a plain ValueError from the bcrypt handler.
+        """
+        assert verify_password("password", stored_hash) is False
 
     def test_token_tampering_detection(self):
         """Test that tampered token is rejected."""

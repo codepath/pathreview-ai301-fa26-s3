@@ -5,6 +5,7 @@ from typing import Any, cast
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
+from passlib.exc import PasswordValueError
 
 from core.config import settings
 
@@ -32,9 +33,22 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         hashed_password: Previously hashed password to compare against
 
     Returns:
-        True if password matches, False otherwise
+        True if password matches, False otherwise. Also False when the
+        stored hash is not a usable bcrypt hash, so verification against
+        a malformed or corrupted stored value fails closed.
     """
-    return bool(pwd_context.verify(plain_password, hashed_password))
+    try:
+        return bool(pwd_context.verify(plain_password, hashed_password))
+    except PasswordValueError:
+        # The plain password was rejected (e.g. over passlib's size limit).
+        # That is a problem with the caller's input, not with the stored
+        # hash, so it stays the caller's to handle.
+        raise
+    except ValueError:
+        # The stored hash could not be identified or parsed. passlib raises
+        # UnknownHashError for unrecognizable values and a plain ValueError
+        # for bcrypt-shaped but malformed ones; both subclass ValueError.
+        return False
 
 
 def create_access_token(data: dict[str, Any], expires_delta: timedelta | None = None) -> str:
