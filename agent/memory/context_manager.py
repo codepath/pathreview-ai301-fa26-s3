@@ -15,6 +15,16 @@ class ContextManager:
         """Initialize context manager."""
         self.results = {}
 
+    def clear(self) -> None:
+        """Drop every cached tool result.
+
+        The orchestrator keeps one context manager for its lifetime, so a
+        new run has to empty the cache itself. The key does not include
+        the profile id.
+        """
+        self.results = {}
+        logger.info("tool_result_cache_cleared")
+
     def store_tool_result(self, tool_name: str, input_hash: str, result) -> None:
         """Store tool execution result.
 

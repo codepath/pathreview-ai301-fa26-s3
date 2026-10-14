@@ -41,6 +41,13 @@ class Orchestrator:
         """
         logger.info("orchestrator_start", profile_id=profile_id)
 
+        # One orchestrator serves many reviews. The cache key is the tool
+        # input, not the profile, so start each run from an empty cache
+        # and drop this profile's saved session before loading it.
+        self.context_manager.clear()
+        if self.session_store:
+            self.session_store.delete(profile_id)
+
         # Build execution plan
         plan = self._build_plan(profile_data)
 
