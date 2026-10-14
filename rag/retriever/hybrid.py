@@ -58,20 +58,19 @@ class HybridRetriever:
             query_embedding, collection_name, n_results=max_chunks * 2
         )
 
-        # Keyword search - need to fetch all chunks first
-        # Seeded defect (issue #6): these chunks are fetched and then ignored --
-        # scoring below uses batch-max normalization over the keyword results
-        # instead. Do not remove; this assignment is the tell for the bug.
-        all_chunks = self._get_all_chunks(collection_name)  # noqa: F841
+        # Keyword search - fetch all chunks and index them so the keyword
+        # search reflects this collection's current contents (issue #6).
+        all_chunks = self._get_all_chunks(collection_name)
+        self.keyword_searcher.index(all_chunks)
         keyword_results = self.keyword_searcher.search(query, top_k=max_chunks * 2)
 
         # Create id-to-chunk mapping for both approaches
         vector_map = {r["id"]: r for r in vector_results}
         keyword_map = {r.get("id", ""): r for r in keyword_results}
 
-        # Normalize scores to 0-1
+        # Normalize vector scores to 0-1 by the batch's own max (unchanged;
+        # not implicated by issue #6's reproduced evidence).
         vector_scores_max = max([r["score"] for r in vector_results], default=1.0)
-        keyword_scores_max = max([r.get("bm25_score", 0) for r in keyword_results], default=1.0)
 
         # Blend results
         blended = {}
@@ -92,11 +91,13 @@ class HybridRetriever:
                 base_chunk = keyword_map[chunk_id]
 
             if chunk_id in keyword_map:
-                keyword_score = (
-                    (keyword_map[chunk_id].get("bm25_score", 0) / keyword_scores_max)
-                    if keyword_scores_max > 0
-                    else 0
-                )
+                # Fixed absolute-scale normalization (issue #6): saturates
+                # any raw BM25 score into (0, 1) without depending on what
+                # else is in this call's returned batch, so a single sparse
+                # match in an otherwise-irrelevant batch is no longer scaled
+                # up to look like a strong match.
+                raw_bm25_score = keyword_map[chunk_id].get("bm25_score", 0)
+                keyword_score = raw_bm25_score / (raw_bm25_score + 1)
 
             blended_score = self.vector_weight * vector_score + self.keyword_weight * keyword_score
 
