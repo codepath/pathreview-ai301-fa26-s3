@@ -44,7 +44,8 @@ git remote add upstream https://github.com/codepath/pathreview.git
 
 # 2. Configure environment
 cp .env.example .env
-# Edit .env and set your OPENROUTER_API_KEY (required for AI features)
+# Configure environment: mock needs no API key.
+# OpenRouter: OPENROUTER_API_KEY; OpenAI: OPENAI_API_KEY (see .env.example).
 # All other defaults work for local development
 
 # 3. Start backing services (PostgreSQL + Redis)
