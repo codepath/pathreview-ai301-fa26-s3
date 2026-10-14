@@ -94,6 +94,9 @@ class GitHubTool(BaseTool):
             "has_readme": self._has_readme(username, repo_name),
             "topics": repo_json.get("topics", []),
             "homepage": repo_json.get("homepage") or "",
+            "file_structure": self._fetch_file_structure(
+                username, repo_name, repo_json.get("default_branch") or "HEAD"
+            ),
         }
 
         logger.info(
@@ -105,6 +108,36 @@ class GitHubTool(BaseTool):
         )
 
         return metadata
+
+    def _fetch_file_structure(self, username: str, repo_name: str, branch: str) -> list[str]:
+        """Fetch the list of file paths in a repository.
+
+        Args:
+            username: GitHub username
+            repo_name: Repository name
+            branch: Branch to list files from
+
+        Returns:
+            List of file paths, or an empty list if the request fails or
+            GitHub truncates the result
+        """
+        url = f"{self.base_url}/repos/{username}/{repo_name}/git/trees/{branch}"
+
+        headers = {}
+        if self.api_token:
+            headers["Authorization"] = f"token {self.api_token}"
+
+        try:
+            response = httpx.get(url, headers=headers, params={"recursive": "1"}, timeout=10.0)
+            response.raise_for_status()
+            tree = response.json()
+        except Exception:
+            return []
+
+        if tree.get("truncated"):
+            return []
+
+        return [item["path"] for item in tree.get("tree", []) if "path" in item]
 
     def _has_readme(self, username: str, repo_name: str) -> bool:
         """Check if repository has a README file.
