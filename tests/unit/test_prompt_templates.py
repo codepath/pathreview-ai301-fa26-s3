@@ -6,6 +6,14 @@ import pytest
 
 from rag.generator.prompt_templates import PROMPT_TEMPLATES, get_template
 
+EXPECTED_TEMPLATE_HASHES = {
+    ("first_impression", "v1"): "ef6429d3a6d426b3c9913381020dd7e4",
+    ("gaps_feedback", "v1"): "e5bfd6644fd62a0fe01f60c9aa456762",
+    ("presentation_feedback", "v1"): "43549ee59818dfc8eb3627554a563b2e",
+    ("projects_feedback", "v1"): "d346d01b24ee7aad92594014a46557af",
+    ("skills_feedback", "v1"): "f93103d823482a2e65decc6653e4ee5c",
+}
+
 
 @pytest.mark.unit
 class TestPromptTemplates:
@@ -189,19 +197,21 @@ class TestPromptTemplates:
         assert template_default == template_v1
 
     def test_template_snapshot_content_hash(self):
-        """Snapshot test: verify template content hash."""
-        # Create hash of all template content
-        template_content = ""
+        """Snapshot test: every template version's content hash is recorded and unchanged."""
         for name in sorted(PROMPT_TEMPLATES.keys()):
             for version in sorted(PROMPT_TEMPLATES[name].keys()):
-                template_content += PROMPT_TEMPLATES[name][version]
-
-        content_hash = hashlib.md5(template_content.encode()).hexdigest()
-
-        # Expected hash - update if templates intentionally change
-        # This helps detect unintended changes to templates
-        assert isinstance(content_hash, str)
-        assert len(content_hash) == 32  # MD5 hash length
+                content_hash = hashlib.md5(PROMPT_TEMPLATES[name][version].encode()).hexdigest()
+                key = (name, version)
+                assert key in EXPECTED_TEMPLATE_HASHES, (
+                    f"No recorded hash for {name!r} version {version!r}. "
+                    f"Add EXPECTED_TEMPLATE_HASHES[{key!r}] = {content_hash!r} "
+                    "if this is a new, intentional version."
+                )
+                assert content_hash == EXPECTED_TEMPLATE_HASHES[key], (
+                    f"{name!r} version {version!r} content changed but its version "
+                    "key did not. Bump the version if this is intentional, or revert "
+                    "the content change."
+                )
 
     def test_skills_feedback_requests_json_format(self):
         """Test skills_feedback requests JSON output."""
