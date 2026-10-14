@@ -20,6 +20,11 @@ class KeywordSearcher:
         Args:
             chunks: List of chunk dicts with 'text' field
         """
+        if not corpus:
+            self.corpus = []
+            self.bm25 = None
+            return
+            
         self.chunks = chunks
         tokenized_corpus = [self._tokenize(chunk["text"]) for chunk in chunks]
         self.bm25 = BM25Okapi(tokenized_corpus)
