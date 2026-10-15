@@ -1,0 +1,1 @@
+I'd like to work on issue #56. I'll first reproduce the heading-less document case described in the issue, then trace the structural chunker behavior and add or update the relevant test before making a fix.

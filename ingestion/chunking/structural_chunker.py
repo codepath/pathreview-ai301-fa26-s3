@@ -38,6 +38,10 @@ class StructuralChunker(BaseChunker):
         # Extract sections with heading hierarchy
         sections = self._extract_sections(text)
 
+        # A document with no headings at all is chunked as a single section
+        if not sections and not re.search(r"^(#{1,6})\s+(.+)$", text, re.MULTILINE):
+            sections = [{"content": text.strip(), "path": [], "level": 0}]
+
         chunks = []
         for section in sections:
             heading_path = " > ".join(section["path"])
