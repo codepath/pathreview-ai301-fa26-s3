@@ -90,6 +90,10 @@ class SkillExtractor:
         "oracle": 0.85,
     }
 
+    DATABASE_ALIASES = {
+        "psycopg2": "postgresql",
+    }
+
     TOOLS = {
         "docker": 0.95,
         "kubernetes": 0.95,
@@ -172,18 +176,28 @@ class SkillExtractor:
 
         # JavaScript/TypeScript detection
         js_evidence = []
+        ts_evidence = []
         if ".js" in str(filename or "").lower():
             js_evidence.append("JavaScript file extension (.js)")
         if ".ts" in str(filename or "").lower():
-            js_evidence.append("TypeScript file extension (.ts)")
-        if re.search(r"\b(import|require)\s+", text):
+            ts_evidence.append("TypeScript file extension (.ts)")
+        if re.search(r"\bimport\s+|\brequire\s*\(", text):
             js_evidence.append("CommonJS or ES6 imports")
+        if re.search(r"\b(const|let|var)\s+\w+\s*=", text):
+            js_evidence.append("JavaScript variable declarations")
+        if re.search(r"\binterface\s+\w+\s*\{", text):
+            ts_evidence.append("TypeScript interface declarations")
+        if re.search(r":\s*(string|number|boolean|void|any)\b", text):
+            ts_evidence.append("TypeScript type annotations")
+        if "Promise<" in text:
+            ts_evidence.append("TypeScript generic types")
         if "package.json" in text_lower:
             js_evidence.append("package.json found")
+        js_evidence.extend(ts_evidence)
 
         if js_evidence:
             confidence = min(0.95, 0.6 + len(js_evidence) * 0.1)
-            lang = "TypeScript" if ".ts" in str(filename or "").lower() else "JavaScript"
+            lang = "TypeScript" if ts_evidence else "JavaScript"
             skills_dict[lang] = SkillDetection(
                 name=lang,
                 category="Language",
@@ -260,6 +274,17 @@ class SkillExtractor:
                         evidence=[f"Found '{db}' reference in content"],
                     )
 
+        for alias, db in self.DATABASE_ALIASES.items():
+            if alias in text_lower:
+                display_name = db.title()
+                if display_name not in skills_dict:
+                    skills_dict[display_name] = SkillDetection(
+                        name=display_name,
+                        category="Database",
+                        confidence=self.DATABASES[db],
+                        evidence=[f"Found '{alias}' driver for {db}"],
+                    )
+
     def _detect_tools(self, text: str, skills_dict: dict) -> None:
         """Detect tools and DevOps technologies."""
         text_lower = text.lower()
@@ -274,3 +299,20 @@ class SkillExtractor:
                         confidence=confidence,
                         evidence=[f"Found '{tool}' reference in content"],
                     )
+
+        docker_evidence = []
+        if re.search(r"^\s*FROM\s+\S+", text, re.MULTILINE) and re.search(
+            r"^\s*(RUN|CMD|EXPOSE|COPY|WORKDIR|ENTRYPOINT)\b", text, re.MULTILINE
+        ):
+            docker_evidence.append("Dockerfile instructions")
+        if re.search(r"^\s*services:\s*$", text, re.MULTILINE) and re.search(
+            r"^\s+(image|build):", text, re.MULTILINE
+        ):
+            docker_evidence.append("Docker Compose services")
+        if docker_evidence and "Docker" not in skills_dict:
+            skills_dict["Docker"] = SkillDetection(
+                name="Docker",
+                category="Tool",
+                confidence=self.TOOLS["docker"],
+                evidence=docker_evidence,
+            )
