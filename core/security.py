@@ -5,6 +5,7 @@ from typing import Any, cast
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
+from passlib.exc import UnknownHashError
 
 from core.config import settings
 
@@ -32,9 +33,13 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         hashed_password: Previously hashed password to compare against
 
     Returns:
-        True if password matches, False otherwise
+        True if the password matches. False if it does not match, or if the
+        stored hash is malformed.
     """
-    return bool(pwd_context.verify(plain_password, hashed_password))
+    try:
+        return bool(pwd_context.verify(plain_password, hashed_password))
+    except (UnknownHashError, ValueError):
+        return False
 
 
 def create_access_token(data: dict[str, Any], expires_delta: timedelta | None = None) -> str:
