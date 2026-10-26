@@ -7,14 +7,38 @@ import pytest
 from safety.rate_limiter import RateLimiter
 
 
+def _mirror_script(redis_mock):
+    """Run the Lua logic in Python against the mock's commands.
+
+    The real check is SLIDING_WINDOW_SCRIPT, which runs inside Redis. Its behavior against
+    a real Redis is covered in tests/integration/test_rate_limiter_redis.py. This mirror
+    lets the mock-based tests below keep asserting on the same commands.
+    """
+
+    def run(keys, args):
+        key = keys[0]
+        now, window, limit, member = args
+        redis_mock.zremrangebyscore(key, 0, now - window)
+        count = redis_mock.zcard(key)
+        if count < limit:
+            redis_mock.zadd(key, {member: now})
+            redis_mock.expire(key, window + 1)
+            return [1, limit - count - 1]
+        return [0, 0]
+
+    return run
+
+
 @pytest.mark.unit
 class TestRateLimiter:
     """Test suite for RateLimiter."""
 
     @pytest.fixture
     def mock_redis(self):
-        """Create a mock Redis client."""
-        return Mock()
+        """Create a mock Redis client whose registered script mirrors the Lua logic."""
+        redis_mock = Mock()
+        redis_mock.register_script.side_effect = lambda script: _mirror_script(redis_mock)
+        return redis_mock
 
     @pytest.fixture
     def limiter(self, mock_redis):
@@ -293,3 +317,18 @@ class TestRateLimiter:
         # Should work with API key
         call_args = mock_redis.zremrangebyscore.call_args
         assert api_key in call_args[0][0]
+
+    def test_requests_at_same_timestamp_get_unique_members(self, limiter, mock_redis):
+        """Test two requests with the same timestamp are stored as two sorted-set members."""
+        mock_redis.zremrangebyscore = Mock()
+        mock_redis.zcard = Mock(return_value=0)
+        mock_redis.zadd = Mock()
+        mock_redis.expire = Mock()
+
+        with patch("time.time", return_value=1000):
+            limiter.check_rate_limit("user123", limit=10)
+            limiter.check_rate_limit("user123", limit=10)
+
+        members = [call.args[1] for call in mock_redis.zadd.call_args_list]
+        assert len(members) == 2
+        assert set(members[0]) != set(members[1])

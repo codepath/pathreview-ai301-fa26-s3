@@ -1,12 +1,16 @@
+import redis
 import structlog
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 
+from api.middleware.rate_limit import RateLimitMiddleware
 from api.middleware.request_id import RequestIDMiddleware
 from api.routes import auth, health, profiles, reviews
+from core.config import settings
 from core.database import init_db
+from safety.rate_limiter import RateLimiter
 
 log = structlog.get_logger()
 
@@ -38,6 +42,18 @@ def custom_openapi():
 
 app.openapi = custom_openapi
 
+
+# Rate limiting. The Redis client connects lazily, so the app still starts when Redis is down.
+redis_client = redis.Redis.from_url(settings.redis_url)
+rate_limiter = RateLimiter(redis_client)
+
+# Added before CORS so it runs innermost: a 429 still passes through the CORS and request-ID
+# middleware, so browsers can read it and it carries X-Request-ID.
+app.add_middleware(
+    RateLimitMiddleware,
+    limiter=rate_limiter,
+    limit=settings.rate_limit_per_minute,
+)
 
 # Add CORS middleware
 app.add_middleware(
