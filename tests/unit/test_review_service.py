@@ -9,6 +9,7 @@ from core.services.review_service import (
     create_review,
     get_review,
     list_reviews,
+    process_review,
 )
 
 
@@ -377,3 +378,20 @@ class TestReviewService:
 
         # Should order by created_at descending
         mock_db_session.execute.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_process_review_notifies_on_early_return(self, mock_db_session, mock_review):
+        """process_review calls the webhook notifier even when it returns early."""
+        found_review = Mock()
+        found_review.scalars.return_value.first.return_value = mock_review
+        no_profile = Mock()
+        no_profile.scalars.return_value.first.return_value = None
+        mock_db_session.execute = AsyncMock(side_effect=[found_review, no_profile])
+
+        with patch(
+            "core.services.review_service.notify_review_finished", new_callable=AsyncMock
+        ) as notify:
+            await process_review(mock_db_session, mock_review.id, uuid4())
+
+        assert mock_review.status == "failed"
+        notify.assert_awaited_once_with(mock_db_session, mock_review.id)

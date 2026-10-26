@@ -9,6 +9,7 @@ from api.schemas.review import FeedbackSection
 from core.models.ingested_source import IngestedSource
 from core.models.profile import Profile
 from core.models.review import Review
+from core.services.webhook_service import notify_review_finished
 
 log = structlog.get_logger()
 
@@ -86,7 +87,22 @@ async def process_review(
     profile_id: UUID,
 ) -> None:
     """
-    Background task to process a review.
+    Background task to process a review, then notify the owner's webhooks.
+    The notifier runs on every exit path and only fires for a finished review.
+    """
+    try:
+        await _process_review(db, review_id, profile_id)
+    finally:
+        await notify_review_finished(db, review_id)
+
+
+async def _process_review(
+    db,
+    review_id: UUID,
+    profile_id: UUID,
+) -> None:
+    """
+    Run the review pipeline.
     Steps:
     1. Set status="processing"
     2. Run ingestion pipeline on profile's sources
