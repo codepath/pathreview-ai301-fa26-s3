@@ -31,22 +31,13 @@ class TestPIIScrubber:
         assert "alice@example.com" not in scrubbed
         assert "bob@company.org" not in scrubbed
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="issue #53: PII scrubber does not redact parenthesized US phone numbers",
-    )
     def test_us_phone_number_redaction(self, scrubber):
         """Test US phone number is redacted."""
         text = "Call me at (555) 123-4567"
         scrubbed = scrubber.scrub(text)
 
-        assert "[REDACTED]" in scrubbed
-        assert "555" not in scrubbed or "1234567" not in scrubbed
+        assert scrubbed == "Call me at [REDACTED]"
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="issue #53: PII scrubber does not redact parenthesized US phone numbers",
-    )
     def test_us_phone_formats(self, scrubber):
         """Test various US phone number formats."""
         formats = [
@@ -59,7 +50,7 @@ class TestPIIScrubber:
         for phone in formats:
             text = f"Contact: {phone}"
             scrubbed = scrubber.scrub(text)
-            assert "[REDACTED]" in scrubbed
+            assert scrubbed == "Contact: [REDACTED]"
 
     def test_international_phone_redaction(self, scrubber):
         """Test international phone number is redacted."""
@@ -127,10 +118,6 @@ class TestPIIScrubber:
         assert len(email_detections) > 0
         assert "alice@example.com" in email_detections[0]["value"]
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="issue #53: PII scrubber does not redact parenthesized US phone numbers",
-    )
     def test_detect_phone_pii(self, scrubber):
         """Test detect() finds phone number PII."""
         text = "Phone: (555) 123-4567"
@@ -138,6 +125,7 @@ class TestPIIScrubber:
 
         phone_detections = [d for d in detected if "phone" in d["type"]]
         assert len(phone_detections) > 0
+        assert phone_detections[0]["value"] == "(555) 123-4567"
 
     def test_detect_ssn_pii(self, scrubber):
         """Test detect() finds SSN PII."""
@@ -188,16 +176,12 @@ class TestPIIScrubber:
             scrubbed = scrubber.scrub(text)
             assert email not in scrubbed or "[REDACTED]" in scrubbed
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="issue #53: PII scrubber does not redact parenthesized US phone numbers",
-    )
     def test_phone_at_start_of_text(self, scrubber):
         """Test phone number at start of text."""
         text = "(555) 123-4567 is my phone number."
         scrubbed = scrubber.scrub(text)
 
-        assert "[REDACTED]" in scrubbed
+        assert scrubbed == "[REDACTED] is my phone number."
 
     def test_phone_at_end_of_text(self, scrubber):
         """Test phone number at end of text."""
@@ -205,6 +189,13 @@ class TestPIIScrubber:
         scrubbed = scrubber.scrub(text)
 
         assert "[REDACTED]" in scrubbed
+
+    def test_phone_numbers_embedded_in_words_are_not_matched(self, scrubber):
+        """Test phone patterns embedded in words are not matched."""
+        text = "prefix555-123-4567suffix and prefix(555) 123-4567suffix"
+
+        assert scrubber.scrub(text) == text
+        assert scrubber.detect(text) == []
 
     def test_address_variations(self, scrubber):
         """Test various street address formats."""
@@ -234,15 +225,11 @@ class TestPIIScrubber:
         scrubbed = scrubber.scrub(text)
         assert scrubbed == text
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="issue #53: PII scrubber does not redact parenthesized US phone numbers",
-    )
     def test_mixed_pii_and_text(self, scrubber):
         """Test text with mix of PII and regular content."""
         text = """
         Professional Background:
-        I worked at TechCorp for 5 years developing Python applications.
+        Example profile: TechCorp developer with five years of Python application experience.
         Email: john.smith@company.com
         Phone: 555-123-4567
         SSN: 123-45-6789
