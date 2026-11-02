@@ -36,9 +36,6 @@ class TestBatchEmbeddingProcessor:
         """Create a BatchEmbeddingProcessor instance."""
         return BatchEmbeddingProcessor(mock_embedding_provider, mock_vector_db)
 
-    @pytest.mark.xfail(
-        strict=True, reason="issue #66: structlog output is not captured by pytest caplog"
-    )
     def test_empty_chunks_list_returns_empty(self, processor, caplog):
         """Test that empty chunks list logs warning and returns empty list."""
         result = processor.process([])

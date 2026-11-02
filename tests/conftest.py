@@ -1,6 +1,30 @@
 """Shared test fixtures for PathReview."""
 
+import logging
+
 import pytest
+import structlog
+
+
+@pytest.fixture(scope="session", autouse=True)
+def configure_test_logging():
+    """Route structlog events through stdlib logging for pytest capture."""
+    structlog.configure(
+        processors=[
+            structlog.stdlib.filter_by_level,
+            structlog.stdlib.add_logger_name,
+            structlog.stdlib.add_log_level,
+            structlog.stdlib.PositionalArgumentsFormatter(),
+            structlog.processors.EventRenamer("msg"),
+            structlog.processors.JSONRenderer(),
+        ],
+        context_class=dict,
+        logger_factory=structlog.stdlib.LoggerFactory(),
+        wrapper_class=structlog.stdlib.BoundLogger,
+        cache_logger_on_first_use=False,
+    )
+
+    logging.getLogger().setLevel(logging.DEBUG)
 
 
 @pytest.fixture
