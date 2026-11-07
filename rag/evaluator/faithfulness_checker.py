@@ -78,8 +78,9 @@ class FaithfulnessChecker:
             True if claim is supported
         """
         # Tokenize and check for keyword overlap
-        claim_tokens = set(claim.lower().split())
-        context_tokens = set(context.lower().split())
+        punctuation = ".,;:!?()[]\"'"
+        claim_tokens = {t.strip(punctuation) for t in claim.lower().split()} - {""}
+        context_tokens = {t.strip(punctuation) for t in context.lower().split()} - {""}
 
         # Require at least some meaningful overlap
         overlap = claim_tokens & context_tokens
@@ -104,5 +105,10 @@ class FaithfulnessChecker:
             "that",
         }
         meaningful_overlap = overlap - stop_words
+        meaningful_claim = claim_tokens - stop_words
 
-        return len(meaningful_overlap) >= 2
+        # Short claims can't reach a fixed overlap count, so also accept a claim
+        # when at least half of its meaningful tokens appear in the context.
+        return len(meaningful_overlap) >= 2 or (
+            bool(meaningful_overlap) and len(meaningful_overlap) * 2 >= len(meaningful_claim)
+        )

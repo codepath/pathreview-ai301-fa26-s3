@@ -85,10 +85,6 @@ class TestFaithfulnessChecker:
 
         assert score == 0.0
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="issue #59: faithfulness checker can never mark short claims as supported",
-    )
     def test_multiple_context_chunks(self, checker):
         """Test multiple context chunks contribute to score."""
         feedback = "The developer has Python, JavaScript, and Docker experience."
@@ -166,10 +162,6 @@ class TestFaithfulnessChecker:
         # First should be higher
         assert score1 > score2
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="issue #59: faithfulness checker can never mark short claims as supported",
-    )
     def test_multiple_claims_varying_support(self, checker):
         """Test scoring with multiple claims of varying support."""
         feedback = "Python expert. Knows Rust. Skilled with Docker."
@@ -266,3 +258,15 @@ class TestFaithfulnessChecker:
         supported = checker._is_supported(claim, context)
 
         assert supported is True
+
+    def test_short_claim_supported_by_reworded_context(self, checker):
+        """Issue #59: a short claim is supported when its key term appears in context."""
+        assert checker._is_supported("Knows Python", "python expert") is True
+        assert checker._is_supported("Knows Python", "The candidate knows Python") is True
+
+    def test_punctuation_does_not_block_support(self, checker):
+        """Issue #59: commas attached to claim tokens must not break matching."""
+        claim = "The developer has Python, JavaScript, and Docker experience"
+        context = "Python expertise. JavaScript skills. Docker and containerization."
+
+        assert checker._is_supported(claim, context) is True
