@@ -14,10 +14,6 @@ class TestReadmeScorer:
         """Create a ReadmeScorer instance."""
         return ReadmeScorer()
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="issue #63: README scorer fixture is too short for its own word-count assertion",
-    )
     def test_readme_with_all_quality_signals(self, scorer):
         """Test README with all quality signals returns high score."""
         readme = """
@@ -50,6 +46,83 @@ class TestReadmeScorer:
 
         ## Live Demo
         [Try it here](https://demo.example.com)
+
+        ## Overview
+        This service ingests customer feedback from email, chat transcripts,
+        and support tickets, then groups related messages into themes so that
+        product teams can spot recurring problems early. Each theme carries a
+        sentiment trend, a list of representative quotes, and links back to
+        the original conversations for follow-up.
+
+        ## Configuration
+        Settings are read from environment variables at startup. Copy the
+        provided `.env.example` file to `.env` and adjust the values for your
+        environment before launching the server.
+
+        - `DATABASE_URL`: connection string for the PostgreSQL instance
+        - `REDIS_URL`: optional cache used to speed up repeated queries
+        - `LOG_LEVEL`: one of debug, info, warning, or error
+        - `MAX_BATCH_SIZE`: upper bound on messages processed per job
+
+        ## Project Structure
+        - `app/api/` contains the FastAPI routers and request schemas
+        - `app/services/` holds clustering, sentiment, and ingestion logic
+        - `app/models/` defines SQLAlchemy tables and Alembic migrations
+        - `tests/` mirrors the application layout with unit and integration suites
+        - `scripts/` includes helpers for seeding sample data locally
+
+        ## Running Tests
+        The test suite uses pytest. Integration tests expect a disposable
+        database, which you can start with Docker Compose:
+        ```bash
+        docker compose up -d db
+        pytest --cov=app
+        ```
+        Continuous integration runs linting, type checks, and the full suite
+        on every pull request against the main branch.
+
+        ## API Reference
+        Interactive documentation is generated automatically and served at
+        `/docs` once the application is running. The most commonly used
+        endpoints are:
+
+        - `POST /feedback` accepts a single message or a batch upload
+        - `GET /themes` returns clustered themes with sentiment summaries
+        - `GET /themes/{id}` shows quotes and source links for one theme
+        - `DELETE /feedback/{id}` removes a message and reclusters affected themes
+
+        ## Deployment
+        A production Dockerfile is included at the repository root. Build the
+        image, push it to your registry, and run it behind a reverse proxy
+        that terminates TLS. Database migrations should run as a separate
+        release step before new containers receive traffic.
+
+        ## Contributing
+        Contributions are welcome. Please open an issue describing the bug or
+        proposal before starting larger changes, so maintainers can offer
+        guidance on scope and approach. Fork the repository, create a topic
+        branch, write tests covering your change, and submit a pull request
+        with a clear summary. Run the formatter and linter locally first to
+        keep review focused on behavior rather than style.
+
+        ## Roadmap
+        - Multilingual sentiment analysis for non-English feedback
+        - Slack and Microsoft Teams connectors for real-time ingestion
+        - Exportable weekly digest reports in PDF and CSV formats
+        - Role-based access control for shared team workspaces
+
+        ## Troubleshooting
+        If the server fails to start, confirm that PostgreSQL is reachable
+        and that migrations have been applied. Slow theme generation usually
+        means the batch size is too large for available memory; lowering it
+        often resolves timeouts during peak ingestion periods.
+
+        ## License
+        Released under the MIT License. See the LICENSE file for details.
+
+        ## Acknowledgements
+        Thanks to every contributor who reported bugs, reviewed code, and
+        suggested improvements during early development of this project.
         """
 
         result = scorer.execute({"readme_content": readme})
