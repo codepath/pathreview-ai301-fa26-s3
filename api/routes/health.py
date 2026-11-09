@@ -1,4 +1,5 @@
 from datetime import datetime
+from sqlalchemy import text
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, status

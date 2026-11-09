@@ -44,3 +44,5 @@ htmlcov/
 
 # Build artifacts
 *.pyc
+plan.md
+comment.md
