@@ -47,8 +47,7 @@ class TestReadmeScorer:
 
         ## Live Demo
         [Try it here](https://demo.example.com)
-        
-        
+
         ## Overview
         This project provides a complete example application designed to demonstrate a production-style Python service. It includes clear installation instructions, practical usage examples, a documented feature set, and an overview of the technologies used by the application. The goal of this README is to give a new contributor enough context to understand the project, install it locally, run the application, and identify the main components before reading the source code.
 
