@@ -14,10 +14,6 @@ class TestReadmeScorer:
         """Create a ReadmeScorer instance."""
         return ReadmeScorer()
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="issue #63: README scorer fixture is too short for its own word-count assertion",
-    )
     def test_readme_with_all_quality_signals(self, scorer):
         """Test README with all quality signals returns high score."""
         readme = """
@@ -50,6 +46,36 @@ class TestReadmeScorer:
 
         ## Live Demo
         [Try it here](https://demo.example.com)
+
+        ## Overview
+        This project provides a complete example application designed to demonstrate a production-style Python service. It includes clear installation instructions, practical usage examples, a documented feature set, and an overview of the technologies used by the application. The goal of this README is to give a new contributor enough context to understand the project, install it locally, run the application, and identify the main components before reading the source code.
+
+        ## Requirements
+        Before installing the project, make sure Python 3.9 or newer is available on the system. PostgreSQL should also be installed and running if database-backed features are used. A virtual environment is recommended so that project dependencies do not interfere with packages installed globally.
+
+        ## Configuration
+        After installation, create a local environment configuration file containing the database connection settings and any application-specific variables required by the service. Development values should be kept separate from production configuration. Secrets such as passwords or tokens should never be committed to source control.
+
+        ## Development
+        Contributors should install development dependencies before running the test suite. Changes should be made on a dedicated branch and validated locally before they are submitted for review. Keeping changes focused makes it easier to understand failures and prevents unrelated behavior from being included in the same update.
+
+        ## Testing
+        Run the automated test suite after making changes to confirm that existing behavior has not regressed. Tests should cover both successful and failure paths where appropriate. A focused test can be run first while developing a change, followed by the broader suite before the work is considered complete.
+
+        ## Troubleshooting
+        If installation fails, verify the Python version and confirm that all required packages were installed in the active environment. If the application cannot connect to PostgreSQL, check that the database service is running and that the connection settings match the local configuration.
+
+        For unexpected API behavior, review the application logs and run the relevant tests. When reporting a problem, include the command that was run, the observed output, the expected result, and enough environment information for another developer to reproduce the same behavior.
+
+        ## Contributing
+        Contributions should be small, focused, and supported by tests when behavior changes. Before opening a pull request, review the project contribution guidelines, run the appropriate tests, and make sure the branch contains only files related to the intended change.
+
+        Clear commit messages and concise pull request descriptions help maintainers understand why the change is needed and how it was validated. If additional work is discovered while implementing a fix, it should be recorded separately unless it is necessary for the current issue.
+
+        ## Additional Information
+        This README intentionally provides detailed documentation so that users and contributors can understand the project without relying on undocumented assumptions. Installation steps, usage examples, architecture notes, testing guidance, and troubleshooting information are all included to make the project easier to evaluate and maintain.
+
+        The documentation should remain synchronized with the code as the project evolves. When commands, dependencies, configuration options, or supported workflows change, the README should be updated so that new users continue to receive accurate guidance.
         """
 
         result = scorer.execute({"readme_content": readme})
