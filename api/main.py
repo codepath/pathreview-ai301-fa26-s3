@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 
+from api.middleware.rate_limit import RateLimitMiddleware
 from api.middleware.request_id import RequestIDMiddleware
 from api.routes import auth, health, profiles, reviews
 from core.database import init_db
@@ -38,6 +39,15 @@ def custom_openapi():
 
 app.openapi = custom_openapi
 
+
+# Middleware runs outermost-last-added first, so the registration order below is
+# the reverse of the execution order:
+#   RequestIDMiddleware -> CORSMiddleware -> RateLimitMiddleware -> routes
+# Rate limiting sits inside CORS so a 429 still carries the CORS headers the
+# browser needs, and inside request IDs so the 429 body can quote a request ID.
+
+# Add rate limiting middleware (per client IP, and per user when authenticated)
+app.add_middleware(RateLimitMiddleware)
 
 # Add CORS middleware
 app.add_middleware(
