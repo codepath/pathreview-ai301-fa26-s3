@@ -39,7 +39,13 @@ class Settings(BaseSettings):
     min_relevance_score: float = Field(default=0.3)
 
     # Rate Limiting
+    rate_limit_enabled: bool = Field(default=True)
+    # Per authenticated user, keyed on the token's subject claim.
     rate_limit_per_minute: int = Field(default=60)
+    # Per client IP. Set higher than the per-user budget because an IP can be
+    # shared by several users behind NAT or a campus network.
+    rate_limit_per_ip_per_minute: int = Field(default=120)
+    rate_limit_window_seconds: int = Field(default=60)
 
     class Config:
         env_file = ".env"
