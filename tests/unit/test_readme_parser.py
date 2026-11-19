@@ -15,10 +15,6 @@ class TestReadmeParser:
         """Create a ReadmeParser instance."""
         return ReadmeParser()
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="issue #70 (manifest H-03): README parser fixture is indented, so it has no headings",
-    )
     def test_parse_standard_readme(self, parser, sample_readme_text):
         """Test parsing a standard README."""
         result = parser.parse(sample_readme_text)
